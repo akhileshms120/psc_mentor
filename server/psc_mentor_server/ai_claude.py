@@ -64,7 +64,7 @@ def _block(part: Part) -> dict:
     return {"type": "document" if media_type == "application/pdf" else "image", "source": source}
 
 
-def json_call(*, system: str, parts: list[Part], schema: dict, effort: str) -> dict:
+def json_call(*, system: str, parts: list[Part], schema: dict, effort: str, task: str = "general") -> dict:
     message = _call(system=system, messages=[{"role": "user", "content": [_block(p) for p in parts]}],
                     effort=effort, schema=schema)
     return json.loads(next(b.text for b in message.content if b.type == "text"))

@@ -162,14 +162,108 @@ def test_extract_paper_rereads_only_mixed_script_questions(monkeypatch):
                 "topic_id": "history.kerala_renaissance", "explanation": "x", "answer_letter": letter}
     calls = []
 
-    def fake_json_call(system, parts, schema, effort):
+    def fake_json_call(system, parts, schema, effort, task="general"):
         calls.append(parts)
         if len(calls) == 1:
             return {"questions": [q(1, "പ്രാർത്ഥനാ সমাজം"), q(2, "വൈക്കം സത്യഗ്രഹം")]}
         return {"questions": [q(1, "പ്രാർത്ഥനാ സമാജം")]}
 
     monkeypatch.setattr(ai, "_json_call", fake_json_call)
-    out = ai.extract_paper([(b"%PDF", "application/pdf")], {1: 0, 2: 0}, "cat", ["x"])
+    out = ai.extract_paper([(b"page-photo", "image/png")], {1: 0, 2: 0}, "cat", ["x"])
     assert [x["stem"] for x in out] == ["പ്രാർത്ഥനാ സമാജം", "വൈക്കം സത്യഗ്രഹം"]
-    assert len(calls) == 2 and calls[1][0] == (b"%PDF", "application/pdf")
+    assert len(calls) == 2 and calls[1][0] == (b"page-photo", "image/png")
     assert '"number": 1' in calls[1][-1] and '"number": 2' not in calls[1][-1]
+
+
+def test_pdf_pages_render_as_png():
+    from psc_mentor_server.pdf_pages import as_page_images
+    from .conftest import FIXTURES
+    pages = as_page_images([((FIXTURES / "pKey-92-26-M.pdf").read_bytes(), "application/pdf"), (b"jpg", "image/jpeg")])
+    assert len(pages) == 2
+    assert pages[0][1] == "image/png" and pages[0][0].startswith(b"\x89PNG") and pages[1] == (b"jpg", "image/jpeg")
+
+
+def test_extract_paper_reads_pages_in_overlapping_batches(monkeypatch):
+    from psc_mentor_server import pdf_pages
+    pages = [(f"p{i}".encode(), "image/png") for i in range(1, 21)]
+    monkeypatch.setattr(pdf_pages, "as_page_images", lambda files: pages if files else [])
+    sent = []
+
+    def fake_json_call(system, parts, schema, effort, task="general"):
+        images = [p[0].decode() for p in parts if isinstance(p, tuple)]
+        sent.append(images)
+        first = int(images[0][1:])
+        # question 1 of each batch; the batch's overlap page yields a cut-off copy of the next one
+        full = {"number": first, "stem": f"Question from page {first}", "options": ["a", "b", "c", "d"],
+                "topic_id": "x", "explanation": "e", "answer_letter": "A"}
+        return {"questions": [full]}
+
+    monkeypatch.setattr(ai, "_json_call", fake_json_call)
+    out = ai.extract_paper([(b"%PDF", "application/pdf")], {1: 0}, "cat", ["x"])
+    assert sent == [[f"p{i}" for i in range(1, 10)], [f"p{i}" for i in range(9, 18)], [f"p{i}" for i in range(17, 21)]]
+    assert [q["number"] for q in out] == [1, 9, 17]
+
+
+def test_extract_paper_keeps_the_fuller_copy_of_a_question_split_across_batches(monkeypatch):
+    from psc_mentor_server import pdf_pages
+    monkeypatch.setattr(pdf_pages, "as_page_images", lambda files: [(b"p", "image/png")] * 9 if files else [])
+    replies = [
+        {"questions": [{"number": 40, "stem": "Long question text here", "options": ["a1", "b1", "c1", "d1"],
+                        "topic_id": "x", "explanation": "e", "answer_letter": "B"}]},
+        {"questions": [{"number": 40, "stem": "Long", "options": ["a", "b", "c", "d"],
+                        "topic_id": "x", "explanation": "e", "answer_letter": "B"}]},
+    ]
+    monkeypatch.setattr(ai, "_json_call", lambda *a, **k: replies.pop(0))
+    out = ai.extract_paper([(b"%PDF", "application/pdf")], None, "cat", ["x"])
+    assert out[0]["stem"] == "Long question text here"
+
+
+def test_gemini_moves_to_the_next_model_when_one_is_out_of_quota(monkeypatch):
+    from google.genai import errors
+    tried = []
+
+    class Quota:
+        def __init__(self):
+            self.models = self
+
+        def generate_content(self, **kw):
+            tried.append(kw["model"])
+            if kw["model"] != config.GEMINI_FALLBACKS[-1]:
+                raise errors.ClientError(429, {"error": {"code": 429, "status": "RESOURCE_EXHAUSTED",
+                                                         "message": "quota. Please retry in 22h40m13s."}})
+            return gemini_response(text='{"ok": 1}')
+
+    monkeypatch.setattr(ai_gemini, "_get_client", lambda: Quota())
+    assert ai_gemini.json_call(system="s", parts=["x"], schema={}, effort="low") == {"ok": 1}
+    assert tried == [config.GEMINI_MODEL] + config.GEMINI_FALLBACKS  # main model only once on 429
+
+    class AllOut(Quota):
+        def generate_content(self, **kw):
+            raise errors.ClientError(429, {"error": {"code": 429, "status": "RESOURCE_EXHAUSTED",
+                                                     "message": "quota. Please retry in 22h40m13s."}})
+
+    monkeypatch.setattr(ai_gemini, "_get_client", lambda: AllOut())
+    with pytest.raises(ai.AIError, match="resets in about 22 h 40 min"):
+        ai_gemini.json_call(system="s", parts=["x"], schema={}, effort="low")
+
+
+def test_paper_reading_never_uses_lite_models(monkeypatch):
+    tried = []
+
+    class Fake:
+        def __init__(self):
+            self.models = self
+
+        def generate_content(self, **kw):
+            tried.append(kw["model"])
+            return gemini_response(text='{"questions": []}')
+
+    monkeypatch.setattr(ai_gemini, "_get_client", lambda: Fake())
+    ai_gemini.json_call(system="s", parts=["x"], schema={}, effort="low", task="read_paper")
+    assert tried == [config.GEMINI_READER_MODELS[0]]
+    assert not any("lite" in m for m in config.GEMINI_READER_MODELS)
+
+
+def test_printed_option_labels_are_removed():
+    q = {"number": 1, "stem": "s", "options": ["(A) ബീഹാർ", "B) Gujarat", "C. Maharashtra", "Uttar Pradesh"]}
+    assert ai._clean_questions([q], with_answer=False)[0]["options"] == ["ബീഹാർ", "Gujarat", "Maharashtra", "Uttar Pradesh"]

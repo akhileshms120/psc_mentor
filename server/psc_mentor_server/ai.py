@@ -30,8 +30,9 @@ def _backend():
     raise AIError("AI is not configured. Set GEMINI_API_KEY (or ANTHROPIC_API_KEY) on the server.")
 
 
-def _json_call(system: str, parts: list[Part], schema: dict, effort: str) -> dict:
-    return _backend().json_call(system=system, parts=parts, schema=schema, effort=effort)
+def _json_call(system: str, parts: list[Part], schema: dict, effort: str, task: str = "general") -> dict:
+    """task="read_paper" asks for the backend's most accurate readers (no lite models)."""
+    return _backend().json_call(system=system, parts=parts, schema=schema, effort=effort, task=task)
 
 
 def run_mentor(system: str, history: list[dict], user_parts: list[str], tools: list[dict],
@@ -78,7 +79,8 @@ def _clean_questions(raw: list[dict], with_answer: bool) -> list[dict]:
     """Drop anything that isn't a well-formed four-option question."""
     out = []
     for q in raw:
-        options = [str(o).strip() for o in q.get("options", [])]
+        # Some models keep the printed labels: "(A) Bihar" -> "Bihar".
+        options = [re.sub(r"^\(?[A-Da-d][).]\s*", "", str(o).strip()) for o in q.get("options", [])]
         if len(options) != 4 or not all(options) or not str(q.get("stem", "")).strip():
             continue
         q["options"] = options
@@ -149,38 +151,63 @@ def _repair_scripts(questions: list[dict], files: list[tuple[bytes, str]], schem
         "Bengali, Devanagari or another script inside Malayalam words. Re-read just these from the paper "
         "and return them with every Malayalam word written only in Malayalam Unicode letters:\n" + listing]
     try:
-        fixed = _clean_questions(_json_call(system, parts, schema, effort="medium")["questions"], with_answer=False)
+        fixed = _clean_questions(_json_call(system, parts, schema, effort="medium", task="read_paper")["questions"],
+                                 with_answer=False)
     except (AIError, KeyError, TypeError):
         return questions  # keep the first reading rather than lose the paper
     by_number = {q["number"]: q for q in fixed if not mixed_script(q)}
     return [by_number.get(q["number"], q) if mixed_script(q) else q for q in questions]
 
 
+PAGES_PER_BATCH = 8
+
+
 def extract_paper(files: list[tuple[bytes, str]], answers: dict[int, int | None] | None, catalog: str,
                   topic_ids: list[str], key_files: list[tuple[bytes, str]] | None = None) -> list[dict]:
     """Read a scanned, photographed or legacy-font paper with the model's vision.
 
-    files / key_files: (bytes, media_type) for the question paper pages and an
-    answer key the model should read itself (when it couldn't be parsed locally).
+    files / key_files: (bytes, media_type) for the question paper and an answer key
+    the model should read itself (when it couldn't be parsed locally). PDFs are sent
+    as page images, a few pages per request, so answers stay complete and the model
+    reads the printed page rather than a PDF's hidden legacy-font text.
     """
-    parts: list[Part] = list(files)
-    instructions = (
-        "This is a Kerala PSC question paper. Transcribe every numbered multiple-choice "
-        "question exactly as printed, in its original language, using proper Unicode "
-        "(Malayalam in Unicode Malayalam script, never mixing in Tamil, Kannada, Bengali or "
-        "Devanagari letters). Keep the four options in order A-D without the letter labels. "
-        "Skip instructions pages. "
-    )
-    if key_files:
-        parts.append("The answer key for this paper follows.")
-        parts.extend(key_files)
-        instructions += "Take each answer_letter from the answer key provided."
-    else:
-        instructions += _key_text(answers)
-    parts.append(instructions)
+    from .pdf_pages import as_page_images
+
+    pages = as_page_images(files)
+    key_pages = as_page_images(key_files) if key_files else []
     system, schema = TAGGER_SYSTEM.format(catalog=catalog), _question_schema(topic_ids, with_answer=False)
-    questions = _clean_questions(_json_call(system, parts, schema, effort="medium")["questions"], with_answer=False)
-    return _repair_scripts(questions, list(files) + list(key_files or []), schema, system, instructions)
+    by_number: dict[int, dict] = {}
+    for start in range(0, len(pages), PAGES_PER_BATCH):
+        end = min(start + PAGES_PER_BATCH, len(pages))
+        # One extra page so a question that starts on the last page of the batch comes out whole.
+        batch = pages[start:end + 1]
+        instructions = (
+            "These are page images of a Kerala PSC question paper. Transcribe every numbered "
+            "multiple-choice question exactly as printed, in its original language, using proper Unicode "
+            "(Malayalam in Unicode Malayalam script, never mixing in Tamil, Kannada, Bengali or "
+            "Devanagari letters). Keep the four options in order A-D without the letter labels. "
+            "Skip instructions pages. "
+        )
+        if end < len(pages):
+            instructions += (f"Only transcribe questions that begin on the first {end - start} images; "
+                             "the last image is there only to finish a question that continues onto it. ")
+        parts: list[Part] = list(batch)
+        if key_pages:
+            parts.append("The answer key for this paper follows.")
+            parts.extend(key_pages)
+            instructions += "Take each answer_letter from the answer key provided."
+        else:
+            instructions += _key_text(answers)
+        parts.append(instructions)
+        found = _clean_questions(_json_call(system, parts, schema, effort="medium", task="read_paper")["questions"],
+                                 with_answer=False)
+        found = _repair_scripts(found, batch + key_pages, schema, system, instructions)
+        for q in found:
+            old = by_number.get(q["number"])
+            if old is None or len(q["stem"]) + sum(map(len, q["options"])) > \
+                    len(old["stem"]) + sum(map(len, old["options"])):
+                by_number[q["number"]] = q
+    return [by_number[n] for n in sorted(by_number)]
 
 
 GENERATOR_SYSTEM = """You are an experienced Kerala PSC question setter. Write fresh

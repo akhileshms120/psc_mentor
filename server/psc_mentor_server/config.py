@@ -17,9 +17,14 @@ CLAUDE_MODEL = os.environ.get("PSC_CLAUDE_MODEL", "claude-opus-5-5")
 # Pinned: in testing (Oct 2026) "gemini-flash-latest" pointed at an overloaded preview that timed
 # out, and Pro models had no free-tier quota. gemini-3.5-flash answered reliably in 2-4 s.
 GEMINI_MODEL = os.environ.get("PSC_GEMINI_MODEL", "gemini-3.5-flash")
-# Tried in order when the main model is overloaded (503/504) even after a retry.
+# Tried in order when the main model is overloaded (503/504) or out of quota (429). On the free
+# tier each model has its own daily request allowance (20/day for gemini-3.6-flash in testing).
 GEMINI_FALLBACKS = [m.strip() for m in os.environ.get(
-    "PSC_GEMINI_FALLBACKS", "gemini-3.6-flash,gemini-3.5-flash-lite").split(",") if m.strip()]
+    "PSC_GEMINI_FALLBACKS", "gemini-3.6-flash,gemini-3.5-flash-lite,gemini-3.1-flash-lite").split(",") if m.strip()]
+# Reading question papers needs a full Flash model: in testing, flash-lite models invented options
+# and swapped whole questions when transcribing Malayalam pages. No lite models here.
+GEMINI_READER_MODELS = [m.strip() for m in os.environ.get(
+    "PSC_GEMINI_READER_MODELS", "gemini-3.5-flash,gemini-3-flash-preview,gemini-3.6-flash").split(",") if m.strip()]
 
 
 def google_api_key() -> str | None:
