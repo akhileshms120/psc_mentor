@@ -66,18 +66,23 @@ Render's free plan wipes the server's disk on every restart and puts it to sleep
 minutes (the first request then takes up to a minute). Render's own free Postgres is deleted after
 30 days. So keep the data in a free **Neon** Postgres database and run the code on **Render**:
 
-1. **Database:** sign up at [neon.tech](https://neon.tech) → create a project → copy the connection
-   string (`postgresql://...?sslmode=require`).
+1. **Database:** a Neon project is linked (`neon.ts`, `.neon`). `neon deploy` writes its two connection
+   strings into `.env.local` (git-ignored, contains the password): `DATABASE_URL` (pooled, host has
+   `-pooler`, used for queries) and `DATABASE_URL_UNPOOLED` (direct, used only to create tables).
 2. **Code on GitHub:** create an empty GitHub repository and push this folder to it.
 3. **Render:** dashboard → **New → Blueprint** → choose the repository. `render.yaml` sets everything up.
-   When asked, paste the Neon string into `DATABASE_URL` and (optionally) your Anthropic key into
-   `ANTHROPIC_API_KEY`. Deploy.
+   When asked, paste the two values from `.env.local` into `DATABASE_URL` and `DATABASE_URL_UNPOOLED`,
+   and (optionally) your Anthropic key into `ANTHROPIC_API_KEY`. Deploy.
 4. **Check:** open `https://<your-service>.onrender.com/health`. It should show `{"ok":true,...}`.
 5. **Point the app at it:** either enter that URL in the app under *Server settings*, or build it in:
 
    ```bash
    flutter build apk --dart-define=PSC_API_URL=https://<your-service>.onrender.com
    ```
+
+Some networks block Postgres's port 5432 (this happens on many home and office connections), so the
+server may not reach Neon from your computer even though it works from Render. Locally, just leave
+`DATABASE_URL` unset to use SQLite.
 
 The server works with both databases: `DATABASE_URL` set → Postgres, not set → the local SQLite file.
 To run the tests against Postgres: `TEST_DATABASE_URL=postgresql://... .venv/bin/python -m pytest`.

@@ -55,6 +55,46 @@ class _ProfileFormState extends State<_ProfileForm> {
     }
   }
 
+  Future<void> _deleteAccount() async {
+    final password = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete your account?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('This permanently removes your tests, progress, study plan, mentor chat and '
+                'uploaded papers. It cannot be undone.'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: password,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'Password'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final navigator = Navigator.of(context);
+    try {
+      await Api.instance.deleteAccount(password.text);
+      navigator.popUntil((r) => r.isFirst);
+    } catch (e) {
+      if (mounted) showError(context, e);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final u = widget.user;
@@ -101,6 +141,12 @@ class _ProfileFormState extends State<_ProfileForm> {
             label: const Text('Server settings'),
             onPressed: () => Navigator.of(context)
                 .push(MaterialPageRoute<void>(builder: (_) => const ServerSettingsScreen())),
+          ),
+          TextButton.icon(
+            icon: const Icon(Icons.delete_forever_outlined),
+            label: const Text('Delete account'),
+            style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
+            onPressed: _deleteAccount,
           ),
           OutlinedButton.icon(
             icon: const Icon(Icons.logout),

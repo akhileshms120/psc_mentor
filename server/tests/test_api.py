@@ -154,3 +154,24 @@ def test_too_many_wrong_passwords_locks_the_account_for_a_while(app_client):
         assert app_client.post("/auth/login", json={"login": "lock@example.com", "password": "nope"}).status_code == 401
     resp = app_client.post("/auth/login", json={"login": "lock@example.com", "password": "secret123"})
     assert resp.status_code == 401 and "Too many" in resp.json()["detail"]
+
+
+def test_delete_account_removes_the_student_and_private_uploads(client, app_client, db):
+    test = client.post("/tests", json={"type": "daily"}).json()
+    client.post(f"/tests/{test['id']}/submit",
+                json={"answers": [{"question_id": q["id"], "selected": 0} for q in test["questions"]]})
+    paper = db.execute("INSERT INTO papers (title, key_url, status, source, owner_user_id) VALUES "
+                       "('Mine', 'upload://del', 'done', 'upload', (SELECT id FROM users WHERE login = '9876543210'))")
+    from psc_mentor_server.questions import add_question
+    qid = add_question(db, type="uploaded", topic_id="computer.cyber_law", stem="Upload-only question",
+                       options=["a", "b", "c", "d"], answer_index=0, source_paper_id=paper)
+    db.execute("INSERT INTO paper_questions (paper_id, qno, question_id) VALUES (?, 1, ?)", (paper, qid))
+    bank = db.one("SELECT COUNT(*) AS n FROM questions")["n"]
+
+    assert client.post("/me/delete", json={"password": "wrong"}).status_code == 403
+    assert client.post("/me/delete", json={"password": "secret123"}).json() == {"ok": True}
+    assert client.get("/me").status_code == 401
+    for table in ["users", "tests", "attempts", "revision", "plan_items", "papers", "sessions"]:
+        assert db.one(f"SELECT COUNT(*) AS n FROM {table}")["n"] == 0, table
+    assert db.one("SELECT COUNT(*) AS n FROM questions")["n"] == bank - 1  # only the private upload went
+    signup(app_client)  # the phone number can be used again

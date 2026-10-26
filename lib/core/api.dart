@@ -178,6 +178,12 @@ class Api {
 
   Future<User> me() async => User.fromJson(await _send('GET', '/me'));
 
+  /// Permanently deletes the account and all its data, then signs out.
+  Future<void> deleteAccount(String password) async {
+    await _send('POST', '/me/delete', {'password': password});
+    await _saveToken(null);
+  }
+
   Future<User> updateMe(Map<String, Object?> fields) async {
     final u = User.fromJson(await _send('PUT', '/me', fields));
     changed();

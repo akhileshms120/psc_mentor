@@ -34,6 +34,10 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class PasswordConfirm(BaseModel):
+    password: str
+
+
 class ProfileUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=80)
     daily_minutes: int | None = Field(default=None, ge=30, le=600)
@@ -147,6 +151,14 @@ def create_app(db: Database | None = None, today: Callable[[], date] = date.toda
     @app.post("/auth/logout")
     def logout(user_id: User, authorization: Annotated[str, Header()]):
         auth.logout(db, authorization[7:].strip())
+        return {"ok": True}
+
+    @app.post("/me/delete")
+    def delete_me(req: PasswordConfirm, user_id: User):
+        try:
+            auth.delete_account(db, user_id, req.password)
+        except auth.AuthError as e:
+            raise HTTPException(403, str(e))
         return {"ok": True}
 
     @app.get("/me")

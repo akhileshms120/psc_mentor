@@ -108,5 +108,22 @@ def user_for_token(db: Database, token: str) -> int | None:
     return row["user_id"] if row else None
 
 
+def delete_account(db: Database, user_id: int, password: str) -> None:
+    """Remove a student and everything they created, including their private uploads."""
+    row = db.one("SELECT password_hash FROM users WHERE id = ?", (user_id,))
+    if not row or not check_password(password, row["password_hash"]):
+        raise AuthError("Wrong password.")
+    uploads = [r["id"] for r in db.query("SELECT id FROM papers WHERE owner_user_id = ?", (user_id,))]
+    db.execute("DELETE FROM attempts WHERE user_id = ?", (user_id,))
+    db.execute("DELETE FROM revision WHERE user_id = ?", (user_id,))
+    for paper_id in uploads:
+        db.execute("DELETE FROM paper_questions WHERE paper_id = ?", (paper_id,))
+        # A question that another paper also contains stays in the bank, detached from the upload.
+        db.execute("UPDATE questions SET source_paper_id = NULL WHERE source_paper_id = ? "
+                   "AND id IN (SELECT question_id FROM paper_questions)", (paper_id,))
+        db.execute("DELETE FROM questions WHERE source_paper_id = ?", (paper_id,))
+    db.execute("DELETE FROM users WHERE id = ?", (user_id,))  # cascades to sessions, tests, plan, chat, papers
+
+
 def logout(db: Database, token: str) -> None:
     db.execute("DELETE FROM sessions WHERE token_hash = ?", (_token_hash(token),))
