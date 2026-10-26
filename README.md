@@ -31,6 +31,13 @@ Two parts:
    Results are cached for 7 days per topic: a search costs 100 of YouTube's free 10,000 daily units.
 
 ### Latest questions from the internet
+Two sources, both giving PSC's own papers and official answer keys:
+- **keralapsc.gov.in** answer-key pages (questions and keys as separate PDFs).
+- **[PSC Thriller](https://www.pscthriller.com/)**: 290+ posts, each with one PDF holding the PSC paper and its
+  answer key. English pages are read directly; the Malayalam-only section is read by the AI. Papers are credited
+  and linked to their post. Imported automatically (`PSC_THRILLER_PAPERS` per run, default 4) or from the
+  *From PSC Thriller* list in the app. Requests are spaced out and only question-paper posts are opened.
+
 The server checks keralapsc.gov.in at startup and every 12 hours. It imports the newest
 general-studies papers with their answer keys, degree-level posts first (University Assistant, SI/Excise Inspector,
 Secretariat Assistant…), and skips technical posts. Tests prefer real PYQs from the newest degree-level papers.

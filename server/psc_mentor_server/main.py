@@ -9,7 +9,7 @@ from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, Header, HTTPE
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from . import ai, analysis, auth, engine, importer, mentor, planner, progress, psc_source, sync, videos
+from . import ai, analysis, auth, engine, importer, mentor, planner, progress, psc_source, psc_thriller, sync, videos
 from .config import DATABASE_URL, DATABASE_URL_UNPOOLED, DB_PATH, ai_enabled, ai_provider
 from .db import Database, open_database
 from .seed_questions import seed_questions
@@ -73,6 +73,10 @@ class ImportRequest(BaseModel):
     key_type: str | None = None
 
 
+class ThrillerImport(BaseModel):
+    url: str
+
+
 class ChatRequest(BaseModel):
     text: str = Field(min_length=1, max_length=4000)
 
@@ -89,6 +93,8 @@ def create_app(db: Database | None = None, today: Callable[[], date] = date.toda
                fetch_listing: Callable[[int], list] = psc_source.fetch_answer_key_listing,
                run_import: Callable[[Database, int], None] = importer.import_paper,
                run_upload: Callable[..., None] = importer.import_upload,
+               fetch_thriller: Callable[[], list] = psc_thriller.fetch_posts,
+               run_thriller_import: Callable[[Database, int], None] = importer.import_thriller,
                auto_sync: bool | None = None) -> FastAPI:
     db = db or open_database(DATABASE_URL or DB_PATH, schema_url=DATABASE_URL_UNPOOLED)
     seed_syllabus(db)
@@ -306,6 +312,41 @@ def create_app(db: Database | None = None, today: Callable[[], date] = date.toda
             background.add_task(run_import, db, paper_id)
         return dict(row)
 
+    thriller_cache: dict[str, tuple[float, list]] = {}
+
+    @app.get("/thriller/papers")
+    def thriller_papers(user_id: User):
+        cached = thriller_cache.get("posts")
+        if cached and time.time() - cached[0] < LISTING_CACHE_SECONDS:
+            posts = cached[1]
+        else:
+            try:
+                posts = fetch_thriller()
+            except Exception as e:
+                raise HTTPException(502, f"Could not reach pscthriller.com: {e}")
+            thriller_cache["posts"] = (time.time(), posts)
+        imported = {r["key_url"]: r for r in db.query("SELECT id, key_url, status FROM papers")}
+        out = []
+        for p in posts:
+            d = p.to_dict()
+            row = imported.get(p.url)
+            d["paper_id"] = row["id"] if row else None
+            d["status"] = row["status"] if row else None
+            out.append(d)
+        return out
+
+    @app.post("/papers/import-thriller")
+    def import_thriller(req: ThrillerImport, background: BackgroundTasks, user_id: User):
+        if not req.url.startswith(psc_thriller.BASE + "/"):
+            raise HTTPException(400, "Only pscthriller.com posts can be imported here")
+        post = next((p for p in thriller_cache.get("posts", (0, []))[1] if p.url == req.url), None)
+        listing = post.to_dict() if post else {"title": req.url.rsplit("/", 1)[-1], "url": req.url}
+        paper_id = importer.queue_thriller(db, listing)
+        row = db.one("SELECT * FROM papers WHERE id = ?", (paper_id,))
+        if row["status"] == "queued":
+            background.add_task(run_thriller_import, db, paper_id)
+        return dict(row)
+
     @app.post("/papers/upload")
     async def upload_paper(
         user_id: User,
@@ -346,7 +387,8 @@ def create_app(db: Database | None = None, today: Callable[[], date] = date.toda
     @app.post("/papers/sync")
     def sync_now(user_id: User, background: BackgroundTasks):
         if not sync.state["running"]:
-            background.add_task(sync.run_sync, db, fetch_listing, run_import)
+            background.add_task(sync.run_sync, db, fetch_listing, run_import,
+                                thriller_fetch=fetch_thriller, thriller_import=run_thriller_import)
         return sync.state
 
     @app.get("/papers/sync")

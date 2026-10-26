@@ -114,7 +114,7 @@ def test_sync_imports_the_chosen_papers(db, fixture_text):
     sync.ai_enabled = lambda: True
     try:
         state = sync.run_sync(db, fetch=lambda page: listing if page == 0 else [], run_import=fake_import,
-                              pages=2, limit=3)
+                              pages=2, limit=3, thriller_fetch=lambda: [])
     finally:
         from psc_mentor_server.config import ai_enabled
         sync.ai_enabled = ai_enabled

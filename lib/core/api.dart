@@ -257,6 +257,15 @@ class Api {
 
   Future<Paper> paper(int id) async => Paper.fromJson(await _send('GET', '/papers/$id'));
 
+  Future<List<ThrillerPost>> thrillerPapers() async =>
+      (await _send('GET', '/thriller/papers') as List).map((p) => ThrillerPost.fromJson(p as Json)).toList();
+
+  Future<Paper> importThriller(String url) async {
+    final p = Paper.fromJson(await _send('POST', '/papers/import-thriller', {'url': url}));
+    changed();
+    return p;
+  }
+
   Future<Paper> importPaper(PaperListing listing) async =>
       Paper.fromJson(await _send('POST', '/papers/import', listing.raw));
 

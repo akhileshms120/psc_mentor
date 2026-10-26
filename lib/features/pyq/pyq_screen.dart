@@ -7,6 +7,7 @@ import '../../core/models.dart';
 import '../../core/ui.dart';
 import '../tests/test_runner.dart';
 import 'paper_detail_screen.dart';
+import 'thriller_section.dart';
 import 'upload_screen.dart';
 
 /// Previous question papers: imported ones to practise, and the official PSC answer-key
@@ -142,6 +143,7 @@ class _PyqScreenState extends State<PyqScreen> {
           const Text('None yet. The server imports the newest degree-level and general papers '
               'automatically, or import one below.'),
         for (final p in official) _PaperTile(paper: p),
+        ThrillerSection(papers: _papers, onImported: _loadPapers),
         const SectionTitle('Official answer keys'),
         Wrap(
           spacing: 8,
@@ -224,7 +226,7 @@ class _PaperTile extends StatelessWidget {
                 ? Icons.error_outline
                 : Icons.downloading),
         title: Text(p.title),
-        subtitle: Text('${[p.paperCode, p.medium, p.testDate].whereType<String>().join(' · ')}\n$status'),
+        subtitle: Text('${[p.paperCode, p.medium, p.testDate, if (p.origin != null) 'via ${p.origin}'].whereType<String>().join(' · ')}\n$status'),
         isThreeLine: true,
         onTap: () => Navigator.of(context)
             .push(MaterialPageRoute<void>(builder: (_) => PaperDetailScreen(paperId: p.id))),

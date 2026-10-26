@@ -89,14 +89,15 @@ def parse_answer_key_listing(html: str) -> list[PaperListing]:
 
 
 # Posts recruited through the Degree Level Common Preliminary exam.
-DEGREE_POSTS = ("DEGREE LEVEL", "UNIVERSITIES", "SECRETARIAT", "SUB INSPECTOR", "SI OF POLICE",
+DEGREE_POSTS = ("DEGREE LEVEL", "DEGREE PRELIM", "UNIVERSITIES", "KAS ", "SECRETARIAT", "SUB INSPECTOR", "SI OF POLICE",
                 "EXCISE INSPECTOR", "ASSISTANT JAILOR", "SPECIAL BRANCH", "AUDITOR", "PSC ASSISTANT",
                 "ASSISTANT INFORMATION OFFICER", "COMMON PRELIMINARY")
 # Other general-studies papers (10th/12th level) whose GK, maths and English still help.
 GENERAL_POSTS = ("PRELIMINARY", "CLERK", "LAST GRADE", "VILLAGE FIELD ASSISTANT", "POLICE CONSTABLE",
                  "CIVIL EXCISE", "BEAT FOREST", "FIRE AND RESCUE", "PEON", "WATCHMAN", "ATTENDER",
                  "SALESMAN", "SERGEANT", "STOREMAN", "STORE MAN", "OFFICE ATTENDANT", "TYPIST",
-                 "ASSISTANT SALESMAN", "FIELD OFFICER")
+                 "ASSISTANT SALESMAN", "FIELD OFFICER", "PRISON OFFICER", "WARDER", "FOREST GUARD",
+                 "JUNIOR ASSISTANT", "VEO", "10TH LEVEL", "PLUS TWO", "12TH LEVEL", "PRELIMS")
 
 
 def paper_level(title: str) -> str:

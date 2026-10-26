@@ -13,11 +13,14 @@ PDF = "application/pdf"
 RENDER_SCALE = 2  # ~144 dpi: small print stays legible, a page is ~300 KB as PNG
 
 
-def pdf_to_images(pdf: bytes) -> list[tuple[bytes, str]]:
+def pdf_to_images(pdf: bytes, pages: list[int] | None = None) -> list[tuple[bytes, str]]:
+    """PNG per page; `pages` (0-based) limits it to some pages."""
     doc = pdfium.PdfDocument(pdf)
     try:
         images = []
-        for page in doc:
+        for i, page in enumerate(doc):
+            if pages is not None and i not in pages:
+                continue
             buf = io.BytesIO()
             page.render(scale=RENDER_SCALE).to_pil().save(buf, format="PNG", optimize=True)
             images.append((buf.getvalue(), "image/png"))

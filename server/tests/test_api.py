@@ -181,3 +181,18 @@ def test_topic_videos_endpoint_without_key(client):
     assert client.get("/topics/x.y/videos").status_code == 404
     resp = client.get("/topics/constitution.rights_duties/videos")
     assert resp.status_code == 503 and "YOUTUBE_API_KEY" in resp.json()["detail"]
+
+
+def test_thriller_listing_and_import(db, fixture_text):
+    from psc_mentor_server import psc_thriller
+    posts = psc_thriller.parse_feed(__import__("json").loads((FIXTURES / "pscthriller_feed.json").read_text()))
+    ran = []
+    app = create_app(db, today=lambda: TODAY, fetch_thriller=lambda: posts,
+                     run_thriller_import=lambda db, pid: ran.append(pid), auto_sync=False)
+    c = TestClient(app)
+    c.headers.update(signup(c))
+    listing = c.get("/thriller/papers").json()
+    assert listing and listing[0]["status"] is None
+    queued = c.post("/papers/import-thriller", json={"url": listing[0]["url"]}).json()
+    assert queued["origin"] == "PSC Thriller" and ran == [queued["id"]]
+    assert c.post("/papers/import-thriller", json={"url": "https://example.com/x"}).status_code == 400

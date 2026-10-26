@@ -182,6 +182,14 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 
 IntegrityError = (sqlite3.IntegrityError, psycopg.IntegrityError)
 
+# Columns added after a database was first created. CREATE TABLE IF NOT EXISTS leaves existing
+# tables alone, so new columns are added here; each entry must be safe to apply to any database.
+MIGRATIONS = [
+    # Where a paper came from when it wasn't keralapsc.gov.in itself, e.g. a PSC Thriller post.
+    ("papers", "origin", "TEXT"),
+    ("papers", "origin_url", "TEXT"),
+]
+
 # Tables whose INSERTs should report the new row's id.
 _ID_TABLES = {"users", "papers", "questions", "tests", "attempts", "plan_items", "chat_messages"}
 
@@ -207,6 +215,10 @@ class Database:
         self.lock = threading.RLock()
         with self.lock:
             self.conn.executescript(SCHEMA)
+            for table, column, kind in MIGRATIONS:
+                existing = {r[1] for r in self.conn.execute(f"PRAGMA table_info({table})")}
+                if column not in existing:
+                    self.conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {kind}")
             self.conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
             self.conn.commit()
 
@@ -265,6 +277,8 @@ class PostgresDatabase:
         # and the pooled one for everyday queries.
         with psycopg.connect(schema_url or url, autocommit=True) as conn:
             conn.execute(_pg_schema())
+            for table, column, kind in MIGRATIONS:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {column} {kind}")
         self.pool = ConnectionPool(
             url, min_size=1, max_size=4, open=True,
             # prepare_threshold=None: Neon's pooled (PgBouncer) URLs can't keep prepared statements

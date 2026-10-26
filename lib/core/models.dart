@@ -288,6 +288,8 @@ class Paper {
         source = j['source'] as String,
         level = j['level'] as String,
         answerSource = j['answer_source'] as String?,
+        origin = j['origin'] as String?,
+        originUrl = j['origin_url'] as String?,
         uploadedOn = j['uploaded_on'] as String?,
         attempts = j['attempts'] is List
             ? (j['attempts'] as List).map((t) => TestInfo.fromJson(t as Json)).toList()
@@ -306,6 +308,10 @@ class Paper {
   final String source;
   final String level;
   final String? answerSource;
+
+  /// Set when the paper came from somewhere other than keralapsc.gov.in, e.g. "PSC Thriller".
+  final String? origin;
+  final String? originUrl;
   final String? uploadedOn;
   final List<TestInfo> attempts;
   final String status;
@@ -455,4 +461,23 @@ class TopicVideo {
     final mm = m.toString().padLeft(h > 0 ? 2 : 1, '0'), ss = s.toString().padLeft(2, '0');
     return h > 0 ? '$h:$mm:$ss' : '$mm:$ss';
   }
+}
+
+class ThrillerPost {
+  ThrillerPost.fromJson(Json j)
+      : title = j['title'] as String,
+        url = j['url'] as String,
+        published = j['published'] as String,
+        paperCode = j['paper_code'] as String?,
+        level = j['level'] as String,
+        paperId = j['paper_id'] as int?,
+        status = j['status'] as String?;
+
+  final String title;
+  final String url;
+  final String published;
+  final String? paperCode;
+  final String level;
+  final int? paperId;
+  final String? status;
 }

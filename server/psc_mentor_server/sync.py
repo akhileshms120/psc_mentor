@@ -10,12 +10,15 @@ import threading
 import time
 from datetime import datetime
 
-from . import importer, psc_source
+from . import importer, psc_source, psc_thriller
 from .config import ai_enabled
 from .db import Database
 
 SYNC_PAGES = int(os.environ.get("PSC_SYNC_PAGES", "6"))
 SYNC_LIMIT = int(os.environ.get("PSC_SYNC_PAPERS", "8"))
+# PSC Thriller papers per run; each uses ~2 AI requests (tagging + the Malayalam section), so keep
+# this small on Gemini's free tier.
+THRILLER_LIMIT = int(os.environ.get("PSC_THRILLER_PAPERS", "4"))
 SYNC_INTERVAL_HOURS = 12
 
 state = {"running": False, "last_run": None, "imported": 0, "failed": 0, "queued": 0, "error": None}
@@ -52,7 +55,8 @@ def select_candidates(listings: list[psc_source.PaperListing], known_keys: set[s
 
 
 def run_sync(db: Database, fetch=psc_source.fetch_answer_key_listing, run_import=importer.import_paper,
-             pages: int = SYNC_PAGES, limit: int = SYNC_LIMIT) -> dict:
+             pages: int = SYNC_PAGES, limit: int = SYNC_LIMIT,
+             thriller_fetch=psc_thriller.fetch_posts, thriller_import=importer.import_thriller) -> dict:
     if not _lock.acquire(blocking=False):
         return state
     try:
@@ -73,11 +77,41 @@ def run_sync(db: Database, fetch=psc_source.fetch_answer_key_listing, run_import
             run_import(db, paper_id)
             status = db.one("SELECT status FROM papers WHERE id = ?", (paper_id,))["status"]
             state["imported" if status == "done" else "failed"] += 1
+        run_thriller(db, thriller_fetch, thriller_import)
         state["last_run"] = datetime.now().isoformat(timespec="seconds")
         return state
     finally:
         state["running"] = False
         _lock.release()
+
+
+def select_thriller(posts: list[psc_thriller.ThrillerPost], known_urls: set[str], db: Database,
+                    limit: int = THRILLER_LIMIT) -> list[psc_thriller.ThrillerPost]:
+    """Degree-level papers first, newest first; skip technical posts and papers we already have."""
+    picked = [p for p in posts if p.url not in known_urls and p.level != "technical"
+              and not importer.already_have_paper(db, p.paper_code)]
+    picked.sort(key=lambda p: p.published, reverse=True)
+    picked.sort(key=lambda p: p.level != "degree")  # stable: newest-first within each group
+    return picked[:limit]
+
+
+def run_thriller(db: Database, fetch=psc_thriller.fetch_posts, run_import=importer.import_thriller,
+                 limit: int = THRILLER_LIMIT) -> None:
+    if limit <= 0:
+        return
+    try:
+        posts = fetch()
+    except Exception as e:
+        state["error"] = f"Could not read PSC Thriller: {e}"
+        return
+    known = {r["key_url"] for r in db.query("SELECT key_url FROM papers WHERE status != 'failed'")}
+    chosen = select_thriller(posts, known, db, limit)
+    state["queued"] += len(chosen)
+    for post in chosen:
+        paper_id = importer.queue_thriller(db, post.to_dict())
+        run_import(db, paper_id)
+        status = db.one("SELECT status FROM papers WHERE id = ?", (paper_id,))["status"]
+        state["imported" if status == "done" else "failed"] += 1
 
 
 def start_background_sync(db: Database) -> None:

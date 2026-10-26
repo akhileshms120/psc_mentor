@@ -1,11 +1,13 @@
 """Turning a question paper (official PSC, or uploaded by a student) into bank questions."""
 
+import re
 import uuid
 from datetime import datetime
 
-from . import ai, psc_source
+from . import ai, psc_source, psc_thriller
 from .config import PAPERS_DIR, ai_enabled
 from .db import Database
+from .pdf_pages import pdf_to_images
 from .questions import add_question
 from .syllabus import all_topic_ids, topic_catalog
 
@@ -180,4 +182,76 @@ def import_upload(db: Database, paper_id: int, files: list[tuple[bytes, str]],
     except (PaperImportError, ai.AIError, ValueError) as e:
         _status(db, paper_id, "failed", str(e))
     except Exception as e:
+        _status(db, paper_id, "failed", f"{type(e).__name__}: {e}")
+
+
+def _code_number_year(code: str | None) -> tuple[int, int] | None:
+    """'54/2026', '054-2026 M', '92-26 M' -> (54, 26), so the same paper matches across sites."""
+    m = re.match(r"\s*0*(\d{1,3})\s*[/-]\s*(?:20)?(\d{2})\b", code or "")
+    return (int(m.group(1)), int(m.group(2))) if m else None
+
+
+def already_have_paper(db: Database, code: str | None) -> bool:
+    wanted = _code_number_year(code)
+    if not wanted:
+        return False
+    rows = db.query("SELECT paper_code FROM papers WHERE status != 'failed' AND paper_code IS NOT NULL "
+                    "AND owner_user_id IS NULL")
+    return any(_code_number_year(r["paper_code"]) == wanted for r in rows)
+
+
+def queue_thriller(db: Database, post: dict) -> int:
+    existing = db.one("SELECT id, status FROM papers WHERE key_url = ?", (post["url"],))
+    if existing:
+        if existing["status"] == "failed":
+            db.execute("UPDATE papers SET status = 'queued', error = NULL WHERE id = ?", (existing["id"],))
+        return existing["id"]
+    y, m, d = (post.get("published") or "--").split("-") if post.get("published") else ("", "", "")
+    return db.execute(
+        "INSERT INTO papers (title, paper_code, uploaded_on, level, key_url, origin, origin_url) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (post["title"], post.get("paper_code"), f"{d}-{m}-{y}" if y else None,
+         post.get("level") or psc_source.paper_level(post["title"]), post["url"],
+         psc_thriller.ORIGIN, post["url"]),
+    )
+
+
+def import_thriller(db: Database, paper_id: int) -> None:
+    """A PSC Thriller post: official PSC paper + its answer key in one Drive PDF."""
+    paper = db.one("SELECT * FROM papers WHERE id = ?", (paper_id,))
+    try:
+        _status(db, paper_id, "downloading")
+        pdf, drive_url = psc_thriller.fetch_paper_pdf(paper["origin_url"])
+        _save(paper_id, "paper.pdf", pdf)
+        split = psc_thriller.split_pdf(pdf)
+        answers = psc_source.parse_answer_key(split.key_text, split.booklet)
+        if not answers:
+            raise PaperImportError("This PDF has no PSC answer key at the end.")
+        db.execute("UPDATE papers SET question_url = ?, key_type = ? WHERE id = ?",
+                   (drive_url, "Final Answer Key" if split.final_key else "Provisional Answer Key", paper_id))
+
+        _status(db, paper_id, "extracting")
+        catalog, topic_ids = topic_catalog(db), all_topic_ids()
+        tagger = (lambda qs: ai.tag_questions(qs, catalog, topic_ids)) if ai_enabled() else None
+        questions = build_questions(split.question_text, answers, tagger) if split.question_text else None
+        questions = questions or []
+        missing = sorted(set(answers) - {q["number"] for q in questions})
+        if missing and ai_enabled():
+            # Questions only printed in the legacy Malayalam font (e.g. the Malayalam section).
+            pages = split.unreadable_tail if questions else split.question_pages
+            if pages:
+                images = pdf_to_images(pdf, pages)
+                extra = ai.extract_paper(images, {n: answers[n] for n in missing}, catalog, topic_ids)
+                questions += [q for q in extra if q["number"] in missing]
+        if not questions:
+            raise PaperImportError("This paper is in the legacy Malayalam font; set up the AI to read it.")
+
+        verification = "final_key" if split.final_key else "provisional_key"
+        count = _store(db, paper_id, questions,
+                       lambda q: answers[q["number"]] if q["number"] in answers else False,
+                       "verified_pyq", verification)
+        _done(db, paper_id, count, "official_key")
+    except (PaperImportError, ai.AIError, ValueError) as e:
+        _status(db, paper_id, "failed", str(e))
+    except Exception as e:  # network errors, malformed PDFs
         _status(db, paper_id, "failed", f"{type(e).__name__}: {e}")
