@@ -5,6 +5,7 @@ import '../../core/models.dart';
 import '../../core/ui.dart';
 import '../mentor/mentor_screen.dart';
 import '../tests/test_runner.dart';
+import '../course/course_screen.dart';
 import '../videos/topic_videos_sheet.dart';
 
 class StudyScreen extends StatelessWidget {
@@ -19,6 +20,15 @@ class StudyScreen extends StatelessWidget {
         subtitle: 'Learn a topic with the mentor, then take a focused 20-question test.',
         onRefresh: reload,
         children: [
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.route_outlined),
+              title: const Text('Day-by-day course'),
+              subtitle: const Text('What to study each day until the exam, covering the whole syllabus.'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const CourseScreen())),
+            ),
+          ),
           for (final s in subjects)
             Card(
               clipBehavior: Clip.antiAlias,
@@ -55,9 +65,10 @@ class _TopicTile extends StatelessWidget {
     final t = topic;
     return ListTile(
       title: Text(t.topic),
-      subtitle: Text(t.attempts == 0
+      subtitle: Text('${t.details.isEmpty ? '' : '${t.details}\n'}${t.attempts == 0
           ? 'Not practised yet · ${t.bankSize} questions in bank'
-          : '${pct(t.accuracy)} of last ${t.attempts} · ${t.bankSize} questions in bank'),
+          : '${pct(t.accuracy)} of last ${t.attempts} · ${t.bankSize} questions in bank'}'),
+      isThreeLine: t.details.isNotEmpty,
       trailing: Wrap(
         spacing: 4,
         children: [

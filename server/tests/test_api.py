@@ -196,3 +196,10 @@ def test_thriller_listing_and_import(db, fixture_text):
     queued = c.post("/papers/import-thriller", json={"url": listing[0]["url"]}).json()
     assert queued["origin"] == "PSC Thriller" and ran == [queued["id"]]
     assert c.post("/papers/import-thriller", json={"url": "https://example.com/x"}).status_code == 400
+
+
+def test_course_endpoint(client):
+    course = client.get("/course").json()
+    assert course["total_days"] == 124 and course["today_day"] == 1  # signed up with exam on 2027-03-01
+    assert client.put("/me", json={"exam_date": "2027-01-28"}).status_code == 200
+    assert client.get("/course").json()["total_days"] == 92  # 28 Oct 2026 -> 28 Jan 2027

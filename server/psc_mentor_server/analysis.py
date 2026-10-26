@@ -23,6 +23,7 @@ MIN_TOPIC_ATTEMPTS = 2  # the diagnostic gives each topic only a few questions
 REVISION_MINUTES = 15
 DAILY_TEST_MINUTES = 15
 STUDY_DAYS = 6  # Sunday is test day
+BLOCK_MINUTES = 30  # one study block = one topic
 
 
 def status(accuracy: float | None) -> str:

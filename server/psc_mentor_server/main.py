@@ -9,11 +9,11 @@ from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, Header, HTTPE
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from . import ai, analysis, auth, engine, importer, mentor, planner, progress, psc_source, psc_thriller, sync, videos
+from . import ai, analysis, auth, curriculum, engine, importer, mentor, planner, progress, psc_source, psc_thriller, sync, videos
 from .config import DATABASE_URL, DATABASE_URL_UNPOOLED, DB_PATH, ai_enabled, ai_provider
 from .db import Database, open_database
 from .seed_questions import seed_questions
-from .syllabus import EXAM_MINUTES, EXAM_NAME, EXAM_QUESTIONS, seed_syllabus
+from .syllabus import EXAM_MINUTES, EXAM_NAME, EXAM_QUESTIONS, TOPIC_DETAILS, seed_syllabus
 
 LISTING_CACHE_SECONDS = 30 * 60
 MAX_UPLOAD_BYTES = 30 * 1024 * 1024  # Claude accepts up to 32 MB per request
@@ -179,7 +179,8 @@ def create_app(db: Database | None = None, today: Callable[[], date] = date.toda
             db.execute("UPDATE users SET name = ? WHERE id = ?", (fields.pop("name").strip(), user_id))
         for key, value in fields.items():
             db.execute(f"UPDATE profiles SET {key} = ? WHERE user_id = ?", (value, user_id))
-        if "daily_minutes" in fields:
+        if "daily_minutes" in fields or "exam_date" in fields:
+            curriculum.ensure_course(db, user_id, today(), rebuild=True)
             planner.ensure_week(db, user_id, today(), regenerate=True)
         return me_view(user_id)
 
@@ -192,7 +193,7 @@ def create_app(db: Database | None = None, today: Callable[[], date] = date.toda
         for s in subjects.values():
             s["topics"] = []
         for t in stats:
-            subjects[t["subject_id"]]["topics"].append(t)
+            subjects[t["subject_id"]]["topics"].append({**t, "details": TOPIC_DETAILS.get(t["topic_id"], "")})
         return list(subjects.values())
 
     @app.get("/today")
@@ -216,6 +217,10 @@ def create_app(db: Database | None = None, today: Callable[[], date] = date.toda
             return videos.topic_videos(db, topic_id)
         except videos.VideoError as e:
             raise HTTPException(404 if "Unknown topic" in str(e) else 503, str(e))
+
+    @app.get("/course")
+    def course(user_id: User):
+        return curriculum.course_view(db, user_id, today())
 
     @app.get("/plan/week")
     def week(user_id: User):

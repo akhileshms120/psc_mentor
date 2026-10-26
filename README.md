@@ -16,16 +16,22 @@ Two parts:
    Mental Ability 10, English 20, Malayalam 10), drawn from the newest official PSC papers first.
 3. **Strength report:** each section is rated Strong (≥70%), Average (50–69%) or Weak (<50%), with an
    estimated score, the marks it could gain, and weak/strong topics.
-4. **Time plan:** the weekly study time is shared out in proportion to *marks × (1 − accuracy + 0.15)*,
+4. **Day-by-day course:** Day 1, Day 2, … until the exam date (120 days without one; 30–240 days).
+   Mon–Sat each day has fixed topics (one block per section), Sundays are weekly test + revision, and the
+   last ~10% of days alternate full mocks and revision. Every one of the 49 syllabus topics is covered;
+   extra days go to sections by marks and weakness, and the course is re-planned after the diagnostic
+   and when the exam date or daily time changes. Today's plan on Home follows the course.
+   Each topic shows what the official 2024 syllabus lists under it.
+5. **Time plan:** the weekly study time is shared out in proportion to *marks × (1 − accuracy + 0.15)*,
    so weak, high-mark sections get the most time and strong sections still get some practice.
    The weekly plan is built from that: ~30-minute topic blocks Mon–Sat (weakest topics first,
    one block per section per day), a daily test, revision, a weekly test on Sunday and a full
    mock on the last Sunday of the month. It updates as the student takes more tests.
-5. **Upload your own paper:** a PDF or photos of a PSC or coaching paper, with or without an answer key.
+6. **Upload your own paper:** a PDF or photos of a PSC or coaching paper, with or without an answer key.
    It becomes a timed test, and every attempt can be reviewed question by question. Without a key,
    the AI works out the answers (labelled "AI-answered"). Uploads are private to the student.
-6. **Mentor chat:** the AI mentor (Gemini) sees the strength report and plan, and can create tests, show real PYQs and re-plan.
-7. **Top YouTube lessons:** every topic (Study tab, and each study block on Home) lists the 3 most-viewed
+7. **Mentor chat:** the AI mentor (Gemini) sees the strength report and plan, and can create tests, show real PYQs and re-plan.
+8. **Top YouTube lessons:** every topic (Study tab, and each study block on Home) lists the 3 most-viewed
    Kerala PSC lessons on YouTube, at least 3 minutes long and mentioning PSC, with view counts.
    Needs `YOUTUBE_API_KEY` (Google Cloud → enable *YouTube Data API v3* → Credentials → API key).
    Results are cached for 7 days per topic: a search costs 100 of YouTube's free 10,000 daily units.

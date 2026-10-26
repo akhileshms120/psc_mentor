@@ -155,6 +155,33 @@ void main() {
         '/analysis' => _report,
         '/plan/week' => _plan,
         '/papers/sync' => {'running': false, 'imported': 0, 'failed': 0, 'queued': 0, 'last_run': null},
+        '/course' => {
+            'total_days': 120,
+            'today_day': 3,
+            'start': '2026-10-26',
+            'end': '2027-02-22',
+            'days': [
+              {
+                'day': 3,
+                'date': '2026-10-28',
+                'kind': 'study',
+                'done': false,
+                'topics': [
+                  {
+                    'topic_id': 'constitution.rights_duties',
+                    'topic': 'Fundamental Rights, DPSP, Duties & Citizenship',
+                    'subject': 'Indian Constitution',
+                    'subject_id': 'constitution',
+                    'details': 'Fundamental Rights; Directive Principles; Fundamental Duties; citizenship.',
+                    'part': 1,
+                    'parts': 2,
+                    'practised': false,
+                  },
+                ],
+              },
+              {'day': 7, 'date': '2026-11-01', 'kind': 'weekly_test', 'done': false, 'topics': <Object>[]},
+            ],
+          },
         '/topics/constitution.rights_duties/videos' => {
             'topic_id': 'constitution.rights_duties',
             'stale': false,
@@ -247,6 +274,19 @@ void main() {
     expect(find.textContaining('Fundamental Rights | Kerala PSC'), findsOneWidget);
     expect(find.text('PSC Talks · 1.2M views'), findsOneWidget);
     expect(find.text('25:10'), findsOneWidget);
+  });
+
+  testWidgets('home shows the course day and the course lists days with their topics', (tester) async {
+    await start(tester);
+    expect(find.text('Day 3 of 120'), findsOneWidget);
+    await tester.tap(find.text('Day 3 of 120'));
+    await tester.pumpAndSettle();
+    expect(find.text('Day 3 · Wed 28 Oct · Today'), findsOneWidget);
+    expect(find.text('Weekly test & revision'), findsOneWidget);
+    await tester.tap(find.text('Day 3 · Wed 28 Oct · Today'));
+    await tester.pumpAndSettle();
+    expect(find.text('Part 1 of 2'), findsOneWidget);
+    expect(find.textContaining('Syllabus: Fundamental Rights; Directive Principles'), findsOneWidget);
   });
 
   test('question source labels', () {

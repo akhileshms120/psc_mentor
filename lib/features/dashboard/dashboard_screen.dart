@@ -4,6 +4,7 @@ import '../../core/api.dart';
 import '../../core/models.dart';
 import '../../core/ui.dart';
 import '../analysis/analysis_screen.dart';
+import '../course/course_screen.dart';
 import '../mentor/mentor_screen.dart';
 import '../profile/profile_screen.dart';
 import '../tests/test_runner.dart';
@@ -22,15 +23,16 @@ class DashboardScreen extends StatelessWidget {
       icon: const Icon(Icons.settings_outlined),
       onPressed: () => _openProfile(context),
     );
-    return Loader<(Today, User, List<PlanItem>, StrengthReport)>(
+    return Loader<(Today, User, List<PlanItem>, StrengthReport, Course)>(
       load: () async => (
         await Api.instance.today(),
         await Api.instance.me(),
         await Api.instance.week(),
         await Api.instance.analysis(),
+        await Api.instance.course(),
       ),
       builder: (context, data, reload) {
-        final (today, student, week, report) = data;
+        final (today, student, week, report, course) = data;
         final s = today.summary;
         final daysLeft = student.daysToExam(DateTime.now());
         final minutes = today.plan.fold<int>(0, (sum, p) => sum + p.minutes);
@@ -63,6 +65,7 @@ class DashboardScreen extends StatelessWidget {
               InfoCard(title: 'Revision due', value: '${s.revisionDue} questions', icon: Icons.replay,
                   caption: '${s.questionBank} questions in your bank'),
             ]),
+            CourseCard(course: course),
             _TimePlanCard(report: report),
             const SectionTitle('Today\'s plan'),
             for (final item in today.plan) _PlanTile(item: item, revisionDue: s.revisionDue),

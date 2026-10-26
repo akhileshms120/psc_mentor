@@ -86,7 +86,8 @@ class TopicStat {
         weight = j['weight'] as int,
         bankSize = j['bank_size'] as int,
         attempts = j['attempts'] as int,
-        accuracy = _pct(j['accuracy']);
+        accuracy = _pct(j['accuracy']),
+        details = j['details'] as String? ?? '';
 
   final String topicId;
   final String topic;
@@ -96,6 +97,9 @@ class TopicStat {
   final int bankSize;
   final int attempts;
   final double? accuracy;
+
+  /// What the official syllabus lists under this topic.
+  final String details;
 }
 
 class SubjectStat {
@@ -480,4 +484,58 @@ class ThrillerPost {
   final String level;
   final int? paperId;
   final String? status;
+}
+
+class CourseTopic {
+  CourseTopic.fromJson(Json j)
+      : topicId = j['topic_id'] as String,
+        topic = j['topic'] as String,
+        subject = j['subject'] as String,
+        details = j['details'] as String,
+        part = j['part'] as int,
+        parts = j['parts'] as int,
+        practised = j['practised'] as bool;
+
+  final String topicId;
+  final String topic;
+  final String subject;
+  final String details;
+  final int part;
+  final int parts;
+  final bool practised;
+
+  String get partLabel => parts > 1 ? 'Part $part of $parts' : '';
+}
+
+class CourseDay {
+  CourseDay.fromJson(Json j)
+      : day = j['day'] as int,
+        date = j['date'] as String,
+        kind = j['kind'] as String,
+        topics = (j['topics'] as List).map((t) => CourseTopic.fromJson(t as Json)).toList(),
+        done = j['done'] as bool;
+
+  final int day;
+  final String date;
+  final String kind;
+  final List<CourseTopic> topics;
+  final bool done;
+
+  String get summary => switch (kind) {
+        'weekly_test' => 'Weekly test & revision',
+        'mock' => 'Full mock test (100 questions)',
+        'revision' => 'Revision of weak topics & mistakes',
+        _ => topics.map((t) => '${t.subject}: ${t.topic}').join(' · '),
+      };
+}
+
+class Course {
+  Course.fromJson(Json j)
+      : totalDays = j['total_days'] as int,
+        todayDay = j['today_day'] as int?,
+        days = (j['days'] as List).map((d) => CourseDay.fromJson(d as Json)).toList();
+
+  final int totalDays;
+  final int? todayDay;
+  final List<CourseDay> days;
 }

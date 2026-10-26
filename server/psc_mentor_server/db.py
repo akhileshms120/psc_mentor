@@ -169,6 +169,17 @@ CREATE TABLE IF NOT EXISTS topic_video_fetches (
     fetched_at TEXT NOT NULL
 );
 
+-- The day-by-day course: which topics to study on each day until the exam.
+CREATE TABLE IF NOT EXISTS course_days (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    day INTEGER NOT NULL,
+    date TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    topics_json TEXT NOT NULL,
+    PRIMARY KEY (user_id, day)
+);
+CREATE INDEX IF NOT EXISTS idx_course_user_date ON course_days(user_id, date);
+
 CREATE TABLE IF NOT EXISTS chat_messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

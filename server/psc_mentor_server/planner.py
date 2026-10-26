@@ -7,11 +7,11 @@ Sunday: the weekly test, or the full mock on the last Sunday of the month.
 
 from datetime import date, datetime, timedelta
 
-from .analysis import DAILY_TEST_MINUTES, REVISION_MINUTES, STUDY_DAYS, allocate, study_minutes_per_day
+from . import curriculum
+from .analysis import BLOCK_MINUTES, DAILY_TEST_MINUTES, REVISION_MINUTES, STUDY_DAYS, allocate, study_minutes_per_day
 from .db import Database
 from .progress import WEAK_THRESHOLD, subject_stats, topic_stats
 
-BLOCK_MINUTES = 30
 STALE_DAYS = 14
 
 
@@ -57,8 +57,15 @@ def study_blocks(stats: list[dict], daily_minutes: int, today: date) -> tuple[li
     return days, block_minutes
 
 
-def build_week(stats: list[dict], start: date, daily_minutes: int, today: date) -> list[dict]:
+def build_week(stats: list[dict], start: date, daily_minutes: int, today: date,
+               course: dict[str, list[str]] | None = None) -> list[dict]:
+    """course: {date: [topic_id, ...]} from the day-by-day course; those days study exactly that."""
     days, block_minutes = study_blocks(stats, daily_minutes, today)
+    by_id = {t["topic_id"]: t for t in stats}
+    for offset in range(STUDY_DAYS):
+        planned = (course or {}).get((start + timedelta(days=offset)).isoformat())
+        if planned:
+            days[offset] = [by_id[t] for t in planned if t in by_id]
     items: list[dict] = []
     for offset in range(7):
         day = (start + timedelta(days=offset)).isoformat()
@@ -72,7 +79,8 @@ def build_week(stats: list[dict], start: date, daily_minutes: int, today: date) 
             continue
         items.append({"day": day, "kind": "revision", "topic_id": None, "minutes": REVISION_MINUTES})
         for topic in days[offset]:
-            items.append({"day": day, "kind": "study", "topic_id": topic["topic_id"], "minutes": block_minutes})
+            minutes = study_minutes_per_day(daily_minutes) // max(len(days[offset]), 1)
+            items.append({"day": day, "kind": "study", "topic_id": topic["topic_id"], "minutes": minutes})
         items.append({"day": day, "kind": "daily_test", "topic_id": None, "minutes": DAILY_TEST_MINUTES})
     return items
 
@@ -83,7 +91,14 @@ def ensure_week(db: Database, user_id: int, today: date, regenerate: bool = Fals
     if exists and not regenerate:
         return start
     profile = db.one("SELECT daily_minutes FROM profiles WHERE user_id = ?", (user_id,))
-    items = build_week(topic_stats(db, user_id), week_start(today), profile["daily_minutes"], today)
+    curriculum.ensure_course(db, user_id, today)
+    monday = week_start(today)
+    course = {}
+    for i in range(STUDY_DAYS):
+        topics = curriculum.course_topics_on(db, user_id, monday + timedelta(days=i))
+        if topics:
+            course[(monday + timedelta(days=i)).isoformat()] = topics
+    items = build_week(topic_stats(db, user_id), monday, profile["daily_minutes"], today, course)
     if regenerate:
         # keep what was already done; only re-plan from today onwards
         db.execute("DELETE FROM plan_items WHERE user_id = ? AND week_start = ? AND day >= ? AND done = 0",

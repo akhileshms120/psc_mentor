@@ -4,7 +4,7 @@ import json
 import random
 from datetime import date, datetime
 
-from . import ai, planner
+from . import ai, curriculum, planner
 from .config import ai_enabled
 from .db import Database
 from .progress import apply_revisions, due_revision_ids, topic_stats, weak_topics
@@ -365,6 +365,7 @@ def submit_test(db: Database, user_id: int, test_id: int, answers: dict[int, dic
     )
     if row["type"] == "diagnostic":
         db.execute("UPDATE profiles SET diagnostic_test_id = ? WHERE user_id = ?", (test_id, user_id))
+        curriculum.ensure_course(db, user_id, today, rebuild=True)  # now we know the weak sections
         planner.ensure_week(db, user_id, today, regenerate=True)
     elif row["type"] == "topic":
         planner.mark_done(db, user_id, today, "study", row["topic_id"])

@@ -96,6 +96,101 @@ SYLLABUS: list[tuple[str, str, int, list[tuple[str, str]]]] = [
 ]
 
 
+# What each topic covers, from the official 2024 Degree Level Common Preliminary syllabus.
+# Shown to students and given to the AI when it writes or tags questions.
+TOPIC_DETAILS: dict[str, str] = {
+    "history.kerala_history": "Arrival of Europeans and their contributions; Travancore from Marthanda Varma to "
+                              "Sree Chithira Thirunal; national movement in Kerala; literary sources of Kerala history.",
+    "history.kerala_renaissance": "Social and religious reform movements in Kerala: reformers, organisations, "
+                                  "satyagrahas and their leaders.",
+    "history.kerala_post_1956": "United Kerala movement; political and social history of Kerala after 1956.",
+    "history.medieval_india": "Medieval India: political history, administrative reforms and contributions; "
+                              "establishment of British rule.",
+    "history.freedom_struggle": "First War of Independence; formation of the INC; Swadeshi movement; social reform "
+                                "movements; newspapers, literature and art of the freedom struggle; Gandhi and the "
+                                "national movement; extremist movement; independence.",
+    "history.post_independence": "Post-independence India: state reorganisation; development in science, education "
+                                 "and technology; foreign policy; political history after 1951.",
+    "history.world_history": "Glorious Revolution in England; American War of Independence; French, Russian and "
+                             "Chinese revolutions; political history after the Second World War; UNO and other "
+                             "international organisations.",
+    "geography.world_physical": "Earth's structure, atmosphere, rocks, landforms; pressure belts and winds; "
+                                "temperature and seasons; global warming and pollution; maps, topographic maps and "
+                                "signs; remote sensing and GIS; oceans and their movements; continents and nations.",
+    "geography.india": "India: physiography, states, northern mountains, rivers, northern plains, peninsular "
+                       "plateau, coastal plains; climate, natural vegetation, agriculture, minerals and industries, "
+                       "energy sources; road, water, rail and air transport.",
+    "geography.kerala": "Kerala: physiography, districts, rivers, climate, natural vegetation, wildlife, agriculture "
+                        "and research centres, minerals and industries, energy sources, transport.",
+    "economics.planning": "National income and per capita income; factors of production; economic sectors; Indian "
+                          "economic planning, Five Year Plans, NITI Aayog.",
+    "economics.finance": "Types and functions of economic institutions; Reserve Bank and its functions; public "
+                         "revenue, tax and non-tax revenue; public expenditure; budget; fiscal policy; consumer "
+                         "protection and rights.",
+    "civics.public_admin": "Public administration; bureaucracy; Indian and State civil services; e-governance; "
+                           "Information Commission and RTI Act; Lokpal and Lokayukta.",
+    "civics.government": "Government: executive, judiciary, legislature; elections; political parties.",
+    "civics.welfare_laws": "Human rights and human rights organisations; consumer protection; watershed "
+                           "management; labour and employment; national rural employment policies; land reforms; "
+                           "protection of women, children and the elderly; social welfare and social security; "
+                           "socio-economic statistics.",
+    "constitution.making_preamble": "Constituent Assembly; the Preamble.",
+    "constitution.rights_duties": "Fundamental Rights; Directive Principles; Fundamental Duties; citizenship.",
+    "constitution.institutions": "Constitutional amendments; Panchayati Raj; constitutional institutions and their "
+                                 "functions; emergency; Union, State and Concurrent Lists.",
+    "culture.arts": "Kerala's major visual and performing arts: origin, spread, practice; famous places, "
+                    "institutions, people and artists.",
+    "culture.literature": "Malayalam literary movements, first works and authors; major works; pen names; "
+                          "characters; famous lines; beginnings of Malayalam journalism; awards and honours; "
+                          "Malayali Jnanpith winners; Malayalam cinema's origin, milestones and national awards.",
+    "culture.sports": "Sportspersons of Kerala, India and the world and their honours; major awards and trophies; "
+                      "number of players and terms in major games; Olympics, Paralympics and Winter Olympics; "
+                      "Asian, Afro-Asian, Commonwealth and SAF Games; National Games; national games of countries.",
+    "culture.festivals": "Kerala's major festivals and the places linked to them; cultural centres, places of "
+                         "worship, cultural leaders and their contributions.",
+    "computer.hardware_software": "Input, output and memory devices; system and application software; operating "
+                                  "systems; word processors, spreadsheets, databases, presentations, image editors; "
+                                  "basics of programming (instruction types).",
+    "computer.networks_internet": "LAN, WAN, MAN; network devices (media, switch, hub, router, bridge, gateway); "
+                                  "WWW, e-mail, search engines; social media; browsers and HTML basics.",
+    "computer.cyber_law": "Types of cyber crimes; the IT Act and other laws (awareness level).",
+    "science.everyday": "Nature and scope of science and technology; national policy on S&T and innovation; basics "
+                        "of everyday science.",
+    "science.health": "Human body; public health and community medicine; food and nutrition; health care.",
+    "science.space_defence": "Indian space programme, ISRO and its satellite programmes; DRDO; S&T institutions in "
+                             "India; prominent Indian scientists.",
+    "science.energy_environment": "India's energy needs, resources and policy; renewable and non-renewable energy; "
+                                  "nuclear policy; environmental issues, laws, policies and treaties; biodiversity; "
+                                  "climate change; Western Ghats; forest and wildlife laws; pollution and global "
+                                  "warming; biotechnology, green technology and nanotechnology.",
+    "arithmetic.numbers": "Numbers and basic operations; fractions and decimals; laws of exponents.",
+    "arithmetic.percentage": "Percentage; profit and loss.",
+    "arithmetic.interest": "Simple and compound interest.",
+    "arithmetic.ratio_average": "Ratio and proportion; average.",
+    "arithmetic.time_work_distance": "Time and distance; time and work.",
+    "arithmetic.mensuration_progressions": "Perimeter, area and volume of geometric figures; progressions.",
+    "mental_ability.series_analogy": "Number and letter series; word, letter and number analogies; odd man out.",
+    "mental_ability.coding_signs": "Coding and decoding; problems with mathematical signs; number observation.",
+    "mental_ability.relations_direction": "Family relations; sense of direction; position and ranking tests.",
+    "mental_ability.clock_calendar": "Clock: time and angles, mirror images; date and calendar; clerical ability.",
+    "english.grammar_basics": "Parts of speech; agreement of subject and verb; articles; prepositions; correlatives; "
+                              "degrees of comparison.",
+    "english.verbs_tenses": "Primary and modal auxiliaries; question tags; infinitives and gerunds; tenses; tenses in "
+                            "conditional sentences.",
+    "english.transformation": "Types and interchange of sentences; direct and indirect speech; active and passive "
+                              "voice; correction of sentences.",
+    "english.vocabulary": "Synonyms; antonyms; one-word substitutes; singular and plural; gender; collective nouns.",
+    "english.words_idioms": "Word formation with prefixes and suffixes; compound words; phrasal verbs; foreign "
+                            "words and phrases; words often confused; spelling; idioms; common abbreviations.",
+    "malayalam.correct_usage": "പദശുദ്ധി, വാക്യശുദ്ധി.",
+    "malayalam.word_meaning": "പര്യായം, വിപരീതപദം, ഒറ്റപ്പദം, സമാനപദം.",
+    "malayalam.idioms_proverbs": "ശൈലികൾ, പഴഞ്ചൊല്ലുകൾ.",
+    "malayalam.grammar": "സ്ത്രീലിംഗം, പുല്ലിംഗം; വചനം; ചേർത്തെഴുതുക; പിരിച്ചെഴുതുക; ഘടകപദം.",
+    "malayalam.translation": "പരിഭാഷ (ഇംഗ്ലീഷ് വാക്യങ്ങൾ മലയാളത്തിലേക്ക്).",
+    "special.technical": "Questions from post-specific technical papers.",
+}
+
+
 def topic_id(subject_id: str, suffix: str) -> str:
     return f"{subject_id}.{suffix}"
 
@@ -121,9 +216,10 @@ def seed_syllabus(db: Database) -> None:
 
 
 def topic_catalog(db: Database) -> str:
-    """Compact `id: Subject / Topic` list used in Claude prompts."""
+    """`id: Subject / Topic (covers ...)` list used in AI prompts."""
     rows = db.query(
         "SELECT t.id, s.name AS subject, t.name AS topic FROM topics t "
         "JOIN subjects s ON s.id = t.subject_id ORDER BY s.position, t.position"
     )
-    return "\n".join(f"{r['id']}: {r['subject']} / {r['topic']}" for r in rows)
+    return "\n".join(f"{r['id']}: {r['subject']} / {r['topic']} (covers: {TOPIC_DETAILS.get(r['id'], '')})"
+                     for r in rows)
