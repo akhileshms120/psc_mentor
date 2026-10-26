@@ -1,7 +1,5 @@
 """The Claude-backed flows, with Claude replaced by canned responses."""
 
-from types import SimpleNamespace
-
 import pytest
 
 from psc_mentor_server import ai, auth, engine, importer, mentor, psc_source
@@ -9,34 +7,24 @@ from psc_mentor_server import ai, auth, engine, importer, mentor, psc_source
 from .conftest import FIXTURES, TODAY
 
 
-def text(t):
-    return SimpleNamespace(type="text", text=t)
-
-
-def tool(name, args, id="call_1"):
-    return SimpleNamespace(type="tool_use", id=id, name=name, input=args)
-
-
 def test_mentor_runs_tools_and_links_the_created_test(db, user, monkeypatch):
-    calls = []
+    seen = {}
 
-    def fake_chat(system, messages, tools):
-        calls.append(list(messages))
-        if len(calls) == 1:
-            return SimpleNamespace(stop_reason="tool_use", content=[
-                text("Let's check that."), tool("create_test", {"type": "topic", "topic_id": "english.verbs_tenses"})])
-        return SimpleNamespace(stop_reason="end_turn", content=[text("Your tenses test is ready.")])
+    def fake_run_mentor(system, history, user_parts, tools, run_tool):
+        seen.update(history=history, user_parts=user_parts, tools=[t["name"] for t in tools])
+        seen["tool_result"] = run_tool("create_test", {"type": "topic", "topic_id": "english.verbs_tenses"})
+        return "Your tenses test is ready."
 
-    monkeypatch.setattr(ai, "chat", fake_chat)
+    monkeypatch.setattr(ai, "run_mentor", fake_run_mentor)
     reply = mentor.chat(db, user, "Test me on tenses", TODAY)
 
-    assert reply["reply"].endswith("Your tenses test is ready.")
+    assert reply["reply"] == "Your tenses test is ready."
     assert "Tenses" in reply["tests"][0]["title"]
-    context, question = calls[0][-1]["content"]
-    assert "<student_context>" in context["text"] and '"strength_report"' in context["text"]
-    assert question["text"] == "Test me on tenses"
-    tool_result = calls[1][-1]["content"][0]
-    assert tool_result["type"] == "tool_result" and '"created": true' in tool_result["content"]
+    context, question = seen["user_parts"]
+    assert "<student_context>" in context and '"strength_report"' in context
+    assert question == "Test me on tenses"
+    assert seen["tools"] == ["create_test", "pyq_examples", "replan_week"]
+    assert '"created": true' in seen["tool_result"]
     history = mentor.history(db, user)
     assert [m["role"] for m in history] == ["user", "assistant"]
     assert history[1]["test_id"] == reply["tests"][0]["id"]
@@ -45,14 +33,12 @@ def test_mentor_runs_tools_and_links_the_created_test(db, user, monkeypatch):
 def test_mentor_history_is_per_user_plain_text(db, user, monkeypatch):
     _, other = auth.signup(db, "Binu", "binu@example.com", "secret123")
     seen = []
-    monkeypatch.setattr(ai, "chat", lambda s, m, t: seen.append(list(m)) or SimpleNamespace(
-        stop_reason="end_turn", content=[text("ok")]))
+    monkeypatch.setattr(ai, "run_mentor", lambda system, history, parts, tools, run_tool: seen.append(history) or "ok")
     mentor.chat(db, user, "first", TODAY)
     mentor.chat(db, user, "second", TODAY)
     mentor.chat(db, other, "hello", TODAY)
-    assert seen[1][0] == {"role": "user", "content": "first"}
-    assert seen[1][1] == {"role": "assistant", "content": "ok"}
-    assert len(seen[2]) == 1  # Binu doesn't see Anu's conversation
+    assert seen[1] == [{"role": "user", "content": "first"}, {"role": "assistant", "content": "ok"}]
+    assert seen[2] == []  # Binu doesn't see Anu's conversation
     assert len(mentor.history(db, other)) == 2
 
 

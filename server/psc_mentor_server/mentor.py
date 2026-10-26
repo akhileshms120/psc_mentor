@@ -9,7 +9,6 @@ from .progress import summary
 from .syllabus import all_topic_ids
 
 HISTORY_LIMIT = 20
-MAX_TOOL_ROUNDS = 4
 
 SYSTEM = """You are PSC Mentor, a personal teacher for a student preparing for the Kerala Public
 Service Commission (Kerala PSC) Degree Level Common Preliminary exam: 100 questions in
@@ -46,8 +45,7 @@ TOOLS = [
         "description": "Create a practice test the student can start from the chat. "
                        "type: topic (needs topic_id), daily, weekly, monthly (full 100-question mock) "
                        "or mistakes (retest wrong answers). Use an empty topic_id unless type is topic.",
-        "strict": True,
-        "input_schema": {
+        "schema": {
             "type": "object",
             "properties": {
                 "type": {"type": "string", "enum": ["topic", "daily", "weekly", "monthly", "mistakes"]},
@@ -61,8 +59,7 @@ TOOLS = [
         "name": "pyq_examples",
         "description": "Fetch up to 5 real Kerala PSC previous-year questions (with official answers) "
                        "on a topic, to teach from.",
-        "strict": True,
-        "input_schema": {
+        "schema": {
             "type": "object",
             "properties": {"topic_id": {"type": "string", "enum": all_topic_ids()}},
             "required": ["topic_id"],
@@ -72,8 +69,7 @@ TOOLS = [
     {
         "name": "replan_week",
         "description": "Rebuild the rest of this week's study plan from the student's latest performance.",
-        "strict": True,
-        "input_schema": {"type": "object", "properties": {}, "required": [], "additionalProperties": False},
+        "schema": {"type": "object", "properties": {}, "required": [], "additionalProperties": False},
     },
 ]
 
@@ -157,25 +153,13 @@ def chat(db: Database, user_id: int, text: str, today: date) -> dict:
     messages = [{"role": r["role"], "content": r["content"]} for r in history]
     while messages and messages[0]["role"] != "user":
         messages.pop(0)
-    messages.append({"role": "user", "content": [
-        {"type": "text", "text": f"<student_context>\n{student_context(db, user_id, today)}\n</student_context>"},
-        {"type": "text", "text": text},
-    ]})
-
     created: list[dict] = []
-    for _ in range(MAX_TOOL_ROUNDS):
-        message = ai.chat(SYSTEM, messages, TOOLS)
-        messages.append({"role": "assistant", "content": message.content})
-        if message.stop_reason != "tool_use":
-            break
-        results = [
-            {"type": "tool_result", "tool_use_id": b.id,
-             "content": _run_tool(db, user_id, today, b.name, b.input, created)}
-            for b in message.content if b.type == "tool_use"
-        ]
-        messages.append({"role": "user", "content": results})
-
-    reply = "\n\n".join(b.text for b in message.content if b.type == "text").strip()
+    reply = ai.run_mentor(
+        SYSTEM, messages,
+        [f"<student_context>\n{student_context(db, user_id, today)}\n</student_context>", text],
+        TOOLS,
+        lambda name, args: _run_tool(db, user_id, today, name, args, created),
+    )
     if not reply:
         reply = "I've set that up for you." if created else "Sorry, I couldn't come up with an answer."
     db.execute("INSERT INTO chat_messages (user_id, role, content) VALUES (?, 'user', ?)", (user_id, text))

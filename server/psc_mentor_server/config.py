@@ -14,18 +14,42 @@ PSC_BASE_URL = "https://www.keralapsc.gov.in"
 PSC_ANSWER_KEY_LIST = PSC_BASE_URL + "/answerkey_omrexams"
 
 CLAUDE_MODEL = os.environ.get("PSC_CLAUDE_MODEL", "claude-opus-5-5")
+# Pinned: in testing (Oct 2026) "gemini-flash-latest" pointed at an overloaded preview that timed
+# out, and Pro models had no free-tier quota. gemini-3.5-flash answered reliably in 2-4 s.
+GEMINI_MODEL = os.environ.get("PSC_GEMINI_MODEL", "gemini-3.5-flash")
+# Tried in order when the main model is overloaded (503/504) even after a retry.
+GEMINI_FALLBACKS = [m.strip() for m in os.environ.get(
+    "PSC_GEMINI_FALLBACKS", "gemini-3.6-flash,gemini-3.5-flash-lite").split(",") if m.strip()]
 
 
-def ai_enabled() -> bool:
-    """Claude features need credentials; everything else works without them.
+def google_api_key() -> str | None:
+    return os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
 
-    The SDK also picks up an `ant auth login` profile, so a missing env var
-    alone doesn't mean there are no credentials.
-    """
-    if os.environ.get("PSC_AI", "").lower() == "off":
-        return False
+
+def _anthropic_credentials() -> bool:
+    # The SDK also picks up an `ant auth login` profile, so a missing env var
+    # alone doesn't mean there are no credentials.
     return bool(
         os.environ.get("ANTHROPIC_API_KEY")
         or os.environ.get("ANTHROPIC_AUTH_TOKEN")
         or (Path.home() / ".config" / "anthropic").exists()
     )
+
+
+def ai_provider() -> str | None:
+    """'gemini', 'claude', or None. PSC_AI_PROVIDER picks one explicitly; otherwise a Google key wins."""
+    if os.environ.get("PSC_AI", "").lower() == "off":
+        return None
+    explicit = os.environ.get("PSC_AI_PROVIDER", "").lower()
+    if explicit in ("gemini", "claude"):
+        return explicit
+    if google_api_key():
+        return "gemini"
+    if _anthropic_credentials():
+        return "claude"
+    return None
+
+
+def ai_enabled() -> bool:
+    """AI features need a provider; everything else works without one."""
+    return ai_provider() is not None

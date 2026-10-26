@@ -8,8 +8,8 @@ if [ ! -x .venv/bin/uvicorn ]; then
   .venv/bin/pip install -r requirements-dev.txt
 fi
 
-if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
-  echo "Note: ANTHROPIC_API_KEY is not set, so the AI mentor, Malayalam papers and question generation are off."
+if [ -z "${GEMINI_API_KEY:-}${GOOGLE_API_KEY:-}${ANTHROPIC_API_KEY:-}" ]; then
+  echo "Note: GEMINI_API_KEY is not set, so the AI mentor, Malayalam papers and question generation are off."
 fi
 
 # 0.0.0.0 so a phone or emulator on the same Wi-Fi can reach it too.

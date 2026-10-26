@@ -22,8 +22,9 @@ services:
       # Neon's direct (non -pooler) connection string, used only to create tables at startup.
       - key: DATABASE_URL_UNPOOLED
         sync: false
-      # Optional: enables the AI mentor, Malayalam papers and question generation.
-      - key: ANTHROPIC_API_KEY
+      # Google Gemini API key (aistudio.google.com): turns on the AI mentor, reading
+      # Malayalam/scanned papers, answering uploads without a key, and new questions.
+      - key: GEMINI_API_KEY
         sync: false
       # Downloaded PDFs are only a cache, so the temporary disk is fine for them.
       - key: PSC_DATA_DIR

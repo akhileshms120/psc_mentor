@@ -23,14 +23,14 @@ Two parts:
    mock on the last Sunday of the month. It updates as the student takes more tests.
 5. **Upload your own paper:** a PDF or photos of a PSC or coaching paper, with or without an answer key.
    It becomes a timed test, and every attempt can be reviewed question by question. Without a key,
-   Claude works out the answers (labelled "AI-answered"). Uploads are private to the student.
-6. **Mentor chat:** Claude sees the strength report and plan, and can create tests, show real PYQs and re-plan.
+   the AI works out the answers (labelled "AI-answered"). Uploads are private to the student.
+6. **Mentor chat:** the AI mentor (Gemini) sees the strength report and plan, and can create tests, show real PYQs and re-plan.
 
 ### Latest questions from the internet
 The server checks keralapsc.gov.in at startup and every 12 hours. It imports the newest
 general-studies papers with their answer keys, degree-level posts first (University Assistant, SI/Excise Inspector,
 Secretariat Assistant…), and skips technical posts. Tests prefer real PYQs from the newest degree-level papers.
-Most of these papers are Malayalam-medium with legacy fonts, so **Claude is required to read them**:
+Most of these papers are Malayalam-medium with legacy fonts, so **the AI (Gemini) is required to read them**:
 without an API key the sync finds nothing to import, and the starter bank of 86 questions is all there is.
 
 ## Run the backend
@@ -48,14 +48,19 @@ Or step by step:
 cd server
 python3 -m venv .venv
 .venv/bin/pip install -r requirements-dev.txt
-export ANTHROPIC_API_KEY=sk-ant-...        # optional, enables the AI features
+export GEMINI_API_KEY=...                  # optional, enables the AI features (Google AI Studio key)
 .venv/bin/uvicorn psc_mentor_server.main:app --host 0.0.0.0 --port 8000
 ```
 
 Data is stored in `server/data/` (SQLite database + downloaded PDFs). Tests: `.venv/bin/python -m pytest`.
 
-Settings (environment variables): `PSC_DATA_DIR`, `PSC_DB_PATH`, `PSC_CLAUDE_MODEL`
-(default `claude-opus-5-5`), `PSC_AI=off` to disable Claude, `PSC_AUTO_SYNC=off` to stop automatic paper
+AI provider: **Google Gemini** when `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) is set — model
+`PSC_GEMINI_MODEL` (default `gemini-3.5-flash`), backups `PSC_GEMINI_FALLBACKS`
+(default `gemini-3.6-flash,gemini-3.5-flash-lite`) used when Google says a model is overloaded.
+Anthropic Claude is used instead when only `ANTHROPIC_API_KEY` is set (`PSC_CLAUDE_MODEL`, default
+`claude-opus-5-5`); `PSC_AI_PROVIDER=gemini|claude` forces one.
+
+Settings (environment variables): `PSC_DATA_DIR`, `PSC_DB_PATH`, `PSC_AI=off` to disable AI, `PSC_AUTO_SYNC=off` to stop automatic paper
 import, `PSC_SYNC_PAGES` (listing pages to scan, default 6) and `PSC_SYNC_PAPERS` (papers per run, default 8).
 
 A database from the earlier single-student version is renamed to `*.bak` on first start and a fresh one is created.
@@ -72,7 +77,7 @@ minutes (the first request then takes up to a minute). Render's own free Postgre
 2. **Code on GitHub:** create an empty GitHub repository and push this folder to it.
 3. **Render:** dashboard → **New → Blueprint** → choose the repository. `render.yaml` sets everything up.
    When asked, paste the two values from `.env.local` into `DATABASE_URL` and `DATABASE_URL_UNPOOLED`,
-   and (optionally) your Anthropic key into `ANTHROPIC_API_KEY`. Deploy.
+   and (optionally) your Google Gemini key into `GEMINI_API_KEY`. Deploy.
 4. **Check:** open `https://<your-service>.onrender.com/health`. It should show `{"ok":true,...}`.
 5. **Point the app at it:** either enter that URL in the app under *Server settings*, or build it in:
 
@@ -87,8 +92,8 @@ server may not reach Neon from your computer even though it works from Render. L
 The server works with both databases: `DATABASE_URL` set → Postgres, not set → the local SQLite file.
 To run the tests against Postgres: `TEST_DATABASE_URL=postgresql://... .venv/bin/python -m pytest`.
 
-Anyone with the URL can create an account. With `ANTHROPIC_API_KEY` set, every account uses your
-Claude credits, so watch your usage in the Anthropic console.
+Anyone with the URL can create an account. With `GEMINI_API_KEY` set, every account uses your
+Gemini quota, so watch your usage in Google AI Studio.
 
 ## Run the app
 
@@ -114,7 +119,7 @@ flutter build windows        # requires Windows + Visual Studio C++ tools
 
 ## Important
 
-- The Anthropic API key stays on the server. Never put it in the Flutter app.
+- AI keys (Gemini or Anthropic) stay on the server. Never put them in the Flutter app.
 - Only official `keralapsc.gov.in` files can be imported.
 - Answer keys marked "provisional" can still change. Re-import after PSC publishes the final key.
 - Subject weights for the monthly mock live in `server/psc_mentor_server/syllabus.py`. They

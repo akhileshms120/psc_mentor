@@ -184,7 +184,7 @@ class _ServerSettingsScreenState extends State<ServerSettingsScreen> {
     await Api.instance.setBaseUrl(_server.text);
     try {
       final ai = await Api.instance.health();
-      setState(() => _status = ai ? 'Connected · AI mentor on' : 'Connected · AI mentor off (no API key on server)');
+      setState(() => _status = ai ? 'Connected · AI mentor on' : 'Connected · AI mentor off (no Gemini API key on server)');
     } catch (e) {
       setState(() => _status = '$e');
     }

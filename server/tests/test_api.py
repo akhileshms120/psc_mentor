@@ -34,7 +34,7 @@ def client(app_client):
 
 
 def test_health_is_public(app_client):
-    assert app_client.get("/health").json() == {"ok": True, "ai_enabled": False}
+    assert app_client.get("/health").json() == {"ok": True, "ai_enabled": False, "ai_provider": None}
 
 
 def test_everything_else_needs_login(app_client):
@@ -134,7 +134,7 @@ def test_uploads_are_hidden_from_other_users(client, app_client):
 
 def test_mentor_without_ai_is_a_clear_error(client):
     resp = client.post("/mentor/chat", json={"text": "What should I study today?"})
-    assert resp.status_code == 503 and "ANTHROPIC_API_KEY" in resp.json()["detail"]
+    assert resp.status_code == 503 and "GEMINI_API_KEY" in resp.json()["detail"]
 
 
 def test_syllabus_matches_degree_prelims(client):

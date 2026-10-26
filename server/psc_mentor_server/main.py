@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from . import ai, analysis, auth, engine, importer, mentor, planner, progress, psc_source, sync
-from .config import DATABASE_URL, DATABASE_URL_UNPOOLED, DB_PATH, ai_enabled
+from .config import DATABASE_URL, DATABASE_URL_UNPOOLED, DB_PATH, ai_enabled, ai_provider
 from .db import Database, open_database
 from .seed_questions import seed_questions
 from .syllabus import EXAM_MINUTES, EXAM_NAME, EXAM_QUESTIONS, seed_syllabus
@@ -126,7 +126,7 @@ def create_app(db: Database | None = None, today: Callable[[], date] = date.toda
 
     @app.get("/health")
     def health():
-        return {"ok": True, "ai_enabled": ai_enabled()}
+        return {"ok": True, "ai_enabled": ai_enabled(), "ai_provider": ai_provider()}
 
     # --- accounts -----------------------------------------------------------
 

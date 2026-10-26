@@ -49,8 +49,9 @@ class DashboardScreen extends StatelessWidget {
                 child: ListTile(
                   leading: Icon(Icons.info_outline),
                   title: Text('AI mentor is off'),
-                  subtitle: Text('Tests and tracking work from the question bank. Add an Anthropic API key '
-                      'on the server to chat with the mentor, generate new questions and read Malayalam papers.'),
+                  subtitle: Text('Tests and tracking work from the question bank. Add a Google Gemini API key '
+                      '(GEMINI_API_KEY) on the server to chat with the mentor, generate new questions and '
+                      'read Malayalam papers.'),
                 ),
               ),
             CardGrid(children: [
