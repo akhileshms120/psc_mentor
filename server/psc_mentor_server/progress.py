@@ -30,6 +30,33 @@ def update_revision(db: Database, user_id: int, question_id: int, is_correct: bo
                        (due.isoformat(), stage, user_id, question_id))
 
 
+def apply_revisions(db: Database, user_id: int, results: list[tuple[int, bool]], today: date) -> None:
+    """update_revision for a whole test at once: three round trips instead of two per question."""
+    if not results:
+        return
+    ids = [qid for qid, _ in results]
+    stages = {r["question_id"]: r["stage"] for r in db.query(
+        f"SELECT question_id, stage FROM revision WHERE user_id = ? AND question_id IN ({','.join('?' * len(ids))})",
+        [user_id, *ids])}
+    upserts, deletes = [], []
+    for qid, is_correct in results:
+        if not is_correct:
+            upserts.append((user_id, qid, (today + timedelta(days=REVISION_INTERVALS[0])).isoformat(), 0))
+        elif qid in stages:
+            stage = stages[qid] + 1
+            if stage >= len(REVISION_INTERVALS):
+                deletes.append((user_id, qid))
+            else:
+                upserts.append((user_id, qid, (today + timedelta(days=REVISION_INTERVALS[stage])).isoformat(), stage))
+    if upserts:
+        db.executemany(
+            "INSERT INTO revision (user_id, question_id, due_on, stage) VALUES (?, ?, ?, ?) "
+            "ON CONFLICT(user_id, question_id) DO UPDATE SET due_on = excluded.due_on, stage = excluded.stage",
+            upserts)
+    if deletes:
+        db.executemany("DELETE FROM revision WHERE user_id = ? AND question_id = ?", deletes)
+
+
 def due_revision_ids(db: Database, user_id: int, today: date, limit: int = 100) -> list[int]:
     rows = db.query(
         "SELECT question_id FROM revision WHERE user_id = ? AND due_on <= ? ORDER BY due_on, stage LIMIT ?",

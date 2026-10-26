@@ -169,3 +169,17 @@ def test_duplicate_questions_are_stored_once(db):
     b = add_question(db, type="verified_pyq", topic_id="geography.kerala", stem="capital of kerala ?",
                      options=["Thiruvananthapuram", "Kochi", "Thrissur", "Kozhikode"], answer_index=0)
     assert a == b
+
+
+def test_batched_revision_matches_one_at_a_time(db, user):
+    from datetime import date
+    ids = [r["id"] for r in db.query("SELECT id FROM questions ORDER BY id LIMIT 4")]
+    day = date(2026, 10, 28)
+    # seed: q0, q1 at stage 0; q2 at the last stage
+    progress.apply_revisions(db, user, [(ids[0], False), (ids[1], False), (ids[2], False)], day)
+    db.execute("UPDATE revision SET stage = ? WHERE question_id = ?", (len(progress.REVISION_INTERVALS) - 1, ids[2]))
+    progress.apply_revisions(db, user, [(ids[0], True), (ids[1], False), (ids[2], True), (ids[3], True)], day)
+    rows = {r["question_id"]: (r["due_on"], r["stage"]) for r in db.query("SELECT * FROM revision WHERE user_id = ?", (user,))}
+    assert rows == {ids[0]: ((day + timedelta(days=3)).isoformat(), 1),   # right: moves on
+                    ids[1]: ((day + timedelta(days=1)).isoformat(), 0)}   # wrong again: back to day 1
+    # ids[2] retired after its last interval; ids[3] was never in revision, so a right answer adds nothing

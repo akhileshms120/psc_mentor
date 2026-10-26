@@ -7,7 +7,7 @@ from datetime import date, datetime
 from . import ai, planner
 from .config import ai_enabled
 from .db import Database
-from .progress import due_revision_ids, topic_stats, update_revision, weak_topics
+from .progress import apply_revisions, due_revision_ids, topic_stats, weak_topics
 from .questions import add_question, get_questions, question_dict
 from .syllabus import EXAM_MINUTES, EXAM_NAME, EXAM_QUESTIONS, NEGATIVE_MARK, all_topic_ids, topic_catalog
 
@@ -90,18 +90,29 @@ def _plan_topics(db: Database, user_id: int, today: date, only_today: bool) -> l
     ))
 
 
-def _candidates(db: Database, user_id: int, topic_id: str, exclude: set[int], due: set[int],
-                language: str) -> list[int]:
+def _candidate_rows(db: Database, user_id: int, topic_id: str | None = None) -> dict[str, list]:
+    """Every answerable question this user may see, grouped by topic, in one query.
+
+    One round trip matters on a hosted database: a 100-question mock touches ~45 topics.
+    """
+    rows = db.query(
+        "SELECT q.id, q.topic_id, q.type, q.lang, p.level, p.uploaded_on, MAX(a.answered_at) AS last_seen "
+        "FROM questions q LEFT JOIN papers p ON p.id = q.source_paper_id "
+        "LEFT JOIN attempts a ON a.question_id = q.id AND a.user_id = ? "
+        "WHERE q.answer_index IS NOT NULL AND (p.owner_user_id IS NULL OR p.owner_user_id = ?) "  # uploads stay private
+        + ("AND q.topic_id = ? " if topic_id else "")
+        + "GROUP BY q.id, q.topic_id, q.type, q.lang, p.level, p.uploaded_on",
+        (user_id, user_id, topic_id) if topic_id else (user_id, user_id),
+    )
+    by_topic: dict[str, list] = {}
+    for r in rows:
+        by_topic.setdefault(r["topic_id"], []).append(r)
+    return by_topic
+
+
+def _rank(rows: list, topic_id: str, exclude: set[int], due: set[int], language: str) -> list[int]:
     """Unseen first, then due for revision; within those, the student's language, real
     PYQs from the newest degree-level papers, then everything else."""
-    rows = db.query(
-        "SELECT q.id, q.type, q.lang, p.level, p.uploaded_on, "
-        "       (SELECT MAX(a.answered_at) FROM attempts a WHERE a.question_id = q.id AND a.user_id = ?) AS last_seen "
-        "FROM questions q LEFT JOIN papers p ON p.id = q.source_paper_id "
-        "WHERE q.topic_id = ? AND q.answer_index IS NOT NULL "
-        "AND (p.owner_user_id IS NULL OR p.owner_user_id = ?)",  # uploads stay private
-        (user_id, topic_id, user_id),
-    )
     rows = [r for r in rows if r["id"] not in exclude]
     random.shuffle(rows)
     rows.sort(key=lambda r: (
@@ -114,6 +125,11 @@ def _candidates(db: Database, user_id: int, topic_id: str, exclude: set[int], du
         _neg_date(r["uploaded_on"]),
     ))
     return [r["id"] for r in rows]
+
+
+def _candidates(db: Database, user_id: int, topic_id: str, exclude: set[int], due: set[int],
+                language: str) -> list[int]:
+    return _rank(_candidate_rows(db, user_id, topic_id).get(topic_id, []), topic_id, exclude, due, language)
 
 
 def _neg_date(uploaded_on: str | None) -> int:
@@ -160,11 +176,12 @@ def _generate(db: Database, shortfall: dict[str, int], language: str) -> None:
 def _fill(db: Database, user_id: int, quota: dict[str, int], today: date, allow_generate: bool,
           language: str) -> list[int]:
     due = set(due_revision_ids(db, user_id, today, limit=1000))
+    pool = _candidate_rows(db, user_id)
     chosen: list[int] = []
     taken: set[int] = set()
 
     def take(topic: str, n: int) -> int:
-        got = _candidates(db, user_id, topic, taken, due, language)[:n]
+        got = _rank(pool.get(topic, []), topic, taken, due, language)[:n]
         chosen.extend(got)
         taken.update(got)
         return len(got)
@@ -174,6 +191,7 @@ def _fill(db: Database, user_id: int, quota: dict[str, int], today: date, allow_
     if shortfall and allow_generate and ai_enabled():
         try:
             _generate(db, shortfall, language)
+            pool = _candidate_rows(db, user_id)
         except ai.AIError:
             pass  # fall back to whatever the bank has
         shortfall = {t: n - take(t, n) for t, n in shortfall.items()}
@@ -189,7 +207,7 @@ def _fill(db: Database, user_id: int, quota: dict[str, int], today: date, allow_
                 shortfall[t] -= take(other, shortfall[t])
     missing = sum(n for n in shortfall.values() if n > 0)
     if missing:
-        others = [s["topic_id"] for s in topic_stats(db, user_id) if s["weight"] > 0 and s["bank_size"]]
+        others = [t for t in pool if not t.startswith("special.")]
         random.shuffle(others)
         for topic in others:
             if missing <= 0:
@@ -324,20 +342,20 @@ def submit_test(db: Database, user_id: int, test_id: int, answers: dict[int, dic
         raise TestError("Test already submitted")
     questions = get_questions(db, json.loads(row["question_ids_json"]))
     now = _now()
-    selected = []
+    selected, attempt_rows, answered = [], [], []
     for q in questions:
         given = answers.get(q["id"], {})
         sel = given.get("selected")
         sel = sel if sel in (0, 1, 2, 3) else None
         selected.append(sel)
         is_correct = None if sel is None else int(sel == q["answer_index"])
-        db.execute(
-            "INSERT INTO attempts (user_id, test_id, question_id, selected_index, is_correct, time_ms, answered_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (user_id, test_id, q["id"], sel, is_correct, given.get("time_ms"), now),
-        )
+        attempt_rows.append((user_id, test_id, q["id"], sel, is_correct, given.get("time_ms"), now))
         if sel is not None:
-            update_revision(db, user_id, q["id"], bool(is_correct), today)
+            answered.append((q["id"], bool(is_correct)))
+    db.executemany(
+        "INSERT INTO attempts (user_id, test_id, question_id, selected_index, is_correct, time_ms, answered_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)", attempt_rows)
+    apply_revisions(db, user_id, answered, today)
     result = score(selected, [q["answer_index"] for q in questions], row["negative_mark"])
     db.execute(
         "UPDATE tests SET submitted_at = ?, score = ?, max_score = ?, correct = ?, wrong = ?, skipped = ? "
