@@ -360,6 +360,10 @@ class _ReviewCard extends StatelessWidget {
               const SizedBox(height: 8),
               Text(q.explanation!, style: Theme.of(context).textTheme.bodyMedium),
             ],
+            if (q.sourceRef != null) ...[
+              const SizedBox(height: 4),
+              Text('Based on ${q.sourceRef}', style: Theme.of(context).textTheme.bodySmall),
+            ],
             Align(
               alignment: Alignment.centerRight,
               child: TextButton.icon(

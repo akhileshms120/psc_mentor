@@ -201,6 +201,11 @@ class Api {
           .map((v) => TopicVideo.fromJson(v as Json))
           .toList();
 
+  Future<List<TextbookChapter>> topicTextbooks(String topicId) async =>
+      (await _send('GET', '/topics/${Uri.encodeComponent(topicId)}/textbooks') as List)
+          .map((c) => TextbookChapter.fromJson(c as Json))
+          .toList();
+
   Future<Course> course() async => Course.fromJson(await _send('GET', '/course'));
 
   Future<List<PlanItem>> week() async =>

@@ -50,6 +50,16 @@ Secretariat Assistant…), and skips technical posts. Tests prefer real PYQs fro
 Most of these papers are Malayalam-medium with legacy fonts, so **the AI (Gemini) is required to read them**:
 without an API key the sync finds nothing to import, and the starter bank of 86 questions is all there is.
 
+### School textbooks (NCERT Classes 5–12)
+`server/psc_mentor_server/data/ncert_catalog.json` maps 101 NCERT chapters (Classes 6–12: history, polity,
+geography, economics, science, maths, computer, Indian art) to 27 syllabus topics; chapter titles were
+checked against the chapter PDFs. Students see "Read in NCERT" chapters for each course topic, with the PDF.
+With the AI on, each sync run (`PSC_TEXTBOOK_CHAPTERS`, default 3) writes ~10 PSC-style questions from the
+text of chapters whose topics have the fewest questions, using only facts the chapter states; each question
+shows the chapter it is based on. Kerala-specific topics (Kerala history, renaissance, Kerala geography),
+English, Malayalam and mental ability have no NCERT chapters. Kerala SCERT books are only available behind
+a login on the Samagra portal, so they are not fetched automatically.
+
 ## Run the backend
 
 The app needs the server running first, or it shows "Cannot reach the PSC Mentor server".

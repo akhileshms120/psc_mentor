@@ -10,7 +10,7 @@ import threading
 import time
 from datetime import datetime
 
-from . import importer, psc_source, psc_thriller
+from . import importer, psc_source, psc_thriller, textbooks
 from .config import ai_enabled
 from .db import Database
 
@@ -19,6 +19,8 @@ SYNC_LIMIT = int(os.environ.get("PSC_SYNC_PAPERS", "8"))
 # PSC Thriller papers per run; each uses ~2 AI requests (tagging + the Malayalam section), so keep
 # this small on Gemini's free tier.
 THRILLER_LIMIT = int(os.environ.get("PSC_THRILLER_PAPERS", "4"))
+# NCERT chapters to write questions from per run (one AI request each).
+TEXTBOOK_LIMIT = int(os.environ.get("PSC_TEXTBOOK_CHAPTERS", "3"))
 SYNC_INTERVAL_HOURS = 12
 
 state = {"running": False, "last_run": None, "imported": 0, "failed": 0, "queued": 0, "error": None}
@@ -56,7 +58,8 @@ def select_candidates(listings: list[psc_source.PaperListing], known_keys: set[s
 
 def run_sync(db: Database, fetch=psc_source.fetch_answer_key_listing, run_import=importer.import_paper,
              pages: int = SYNC_PAGES, limit: int = SYNC_LIMIT,
-             thriller_fetch=psc_thriller.fetch_posts, thriller_import=importer.import_thriller) -> dict:
+             thriller_fetch=psc_thriller.fetch_posts, thriller_import=importer.import_thriller,
+             textbook_limit: int = TEXTBOOK_LIMIT) -> dict:
     if not _lock.acquire(blocking=False):
         return state
     try:
@@ -78,6 +81,7 @@ def run_sync(db: Database, fetch=psc_source.fetch_answer_key_listing, run_import
             status = db.one("SELECT status FROM papers WHERE id = ?", (paper_id,))["status"]
             state["imported" if status == "done" else "failed"] += 1
         run_thriller(db, thriller_fetch, thriller_import)
+        state["textbook_questions"] = textbooks.run_textbooks(db, textbook_limit)
         state["last_run"] = datetime.now().isoformat(timespec="seconds")
         return state
     finally:

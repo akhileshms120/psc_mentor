@@ -9,7 +9,8 @@ from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, Header, HTTPE
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from . import ai, analysis, auth, curriculum, engine, importer, mentor, planner, progress, psc_source, psc_thriller, sync, videos
+from . import (ai, analysis, auth, curriculum, engine, importer, mentor, planner, progress, psc_source, psc_thriller,
+               sync, textbooks, videos)
 from .config import DATABASE_URL, DATABASE_URL_UNPOOLED, DB_PATH, ai_enabled, ai_provider
 from .db import Database, open_database
 from .seed_questions import seed_questions
@@ -99,6 +100,7 @@ def create_app(db: Database | None = None, today: Callable[[], date] = date.toda
     db = db or open_database(DATABASE_URL or DB_PATH, schema_url=DATABASE_URL_UNPOOLED)
     seed_syllabus(db)
     seed_questions(db)
+    textbooks.seed_catalog(db)
     if auto_sync is None:
         auto_sync = os.environ.get("PSC_AUTO_SYNC", "on").lower() != "off"
     if auto_sync:
@@ -210,6 +212,16 @@ def create_app(db: Database | None = None, today: Callable[[], date] = date.toda
     @app.get("/analysis")
     def strength_report(user_id: User):
         return analysis.report(db, user_id, today())
+
+    @app.get("/topics/{topic_id}/textbooks")
+    def topic_textbooks(topic_id: str, user_id: User):
+        return textbooks.chapters_for_topic(db, topic_id)
+
+    @app.get("/textbooks")
+    def textbook_progress(user_id: User):
+        rows = db.query("SELECT status, COUNT(*) AS n, COALESCE(SUM(question_count), 0) AS q "
+                        "FROM textbook_chapters GROUP BY status")
+        return {"chapters": {r["status"]: r["n"] for r in rows}, "questions": sum(r["q"] for r in rows)}
 
     @app.get("/topics/{topic_id}/videos")
     def topic_videos(topic_id: str, user_id: User):

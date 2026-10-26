@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/api.dart';
 import '../../core/models.dart';
@@ -158,6 +159,7 @@ void _openDay(BuildContext context, CourseDay day) {
                     if (t.partLabel.isNotEmpty) Text(t.partLabel, style: Theme.of(context).textTheme.bodySmall),
                     const SizedBox(height: 6),
                     Text('Syllabus: ${t.details}'),
+                    _ReadingList(topicId: t.topicId),
                     const SizedBox(height: 8),
                     Wrap(spacing: 8, runSpacing: 4, children: [
                       FilledButton.tonal(
@@ -189,4 +191,42 @@ void _openDay(BuildContext context, CourseDay day) {
       ),
     ),
   );
+}
+
+/// The NCERT chapters that teach a topic, opening the chapter PDF.
+class _ReadingList extends StatelessWidget {
+  const _ReadingList({required this.topicId});
+  final String topicId;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<TextbookChapter>>(
+      future: Api.instance.topicTextbooks(topicId),
+      builder: (context, snap) {
+        final chapters = snap.data ?? const [];
+        if (chapters.isEmpty) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Read in ${chapters.first.board}:', style: Theme.of(context).textTheme.labelLarge),
+              for (final c in chapters.take(4))
+                InkWell(
+                  onTap: () => launchUrl(Uri.parse(c.url), mode: LaunchMode.externalApplication),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    child: Row(children: [
+                      const Icon(Icons.menu_book_outlined, size: 16),
+                      const SizedBox(width: 6),
+                      Expanded(child: Text('Class ${c.classNo} · ${c.book} · Ch ${c.chapter}: ${c.title}')),
+                    ]),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }

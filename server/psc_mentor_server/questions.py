@@ -17,16 +17,18 @@ def detect_lang(stem: str) -> str:
 def add_question(db: Database, *, type: str, topic_id: str, stem: str, options: list[str],
                  answer_index: int | None, explanation: str | None = None, difficulty: int = 2,
                  source_paper_id: int | None = None, source_qno: int | None = None,
-                 verification: str = "unverified") -> int | None:
+                 verification: str = "unverified", source_ref: str | None = None,
+                 source_url: str | None = None) -> int | None:
     """Insert a question; returns its id, or the existing id if it is a duplicate."""
     key = stem_key(stem, options)
     try:
         return db.execute(
             "INSERT INTO questions (type, topic_id, stem, options_json, answer_index, explanation, "
-            "difficulty, lang, source_paper_id, source_qno, verification, stem_key) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "difficulty, lang, source_paper_id, source_qno, verification, stem_key, source_ref, source_url) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (type, topic_id, stem, json.dumps(options, ensure_ascii=False), answer_index,
-             explanation, difficulty, detect_lang(stem), source_paper_id, source_qno, verification, key),
+             explanation, difficulty, detect_lang(stem), source_paper_id, source_qno, verification, key,
+             source_ref, source_url),
         )
     except IntegrityError:
         row = db.one("SELECT id FROM questions WHERE stem_key = ?", (key,))
@@ -45,6 +47,8 @@ def question_dict(row, reveal: bool) -> dict:
         "verification": row["verification"],
         "source_paper_id": row["source_paper_id"],
         "source_qno": row["source_qno"],
+        "source_ref": row["source_ref"],
+        "source_url": row["source_url"],
     }
     if reveal:
         q["answer_index"] = row["answer_index"]

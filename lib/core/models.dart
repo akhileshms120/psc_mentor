@@ -176,6 +176,7 @@ class Question {
         verification = j['verification'] as String,
         answerIndex = j['answer_index'] as int?,
         explanation = j['explanation'] as String?,
+        sourceRef = j['source_ref'] as String?,
         selectedIndex = j['selected_index'] as int?;
 
   final int id;
@@ -187,11 +188,15 @@ class Question {
   final String verification;
   final int? answerIndex;
   final String? explanation;
+
+  /// The textbook chapter a question was written from, e.g. "NCERT Class 11 · ... · Ch 2: ...".
+  final String? sourceRef;
   final int? selectedIndex;
 
   String get sourceLabel => switch (type) {
         'verified_pyq' => verification == 'final_key' ? 'PYQ · final key' : 'PYQ · provisional key',
         'pyq_derived' => 'PYQ-style',
+        _ when verification == 'textbook_ai' => 'From textbook',
         'uploaded' => switch (verification) {
             'uploaded_key' => 'Your paper · your key',
             'ai_read_key' => 'Your paper · key read by AI',
@@ -538,4 +543,21 @@ class Course {
   final int totalDays;
   final int? todayDay;
   final List<CourseDay> days;
+}
+
+class TextbookChapter {
+  TextbookChapter.fromJson(Json j)
+      : board = j['board'] as String,
+        classNo = j['class'] as int,
+        book = j['book'] as String,
+        chapter = j['chapter'] as int,
+        title = j['title'] as String,
+        url = j['url'] as String;
+
+  final String board;
+  final int classNo;
+  final String book;
+  final int chapter;
+  final String title;
+  final String url;
 }

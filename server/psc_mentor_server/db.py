@@ -180,6 +180,24 @@ CREATE TABLE IF NOT EXISTS course_days (
 );
 CREATE INDEX IF NOT EXISTS idx_course_user_date ON course_days(user_id, date);
 
+-- NCERT (and later SCERT) chapters mapped to syllabus topics, and whether questions were
+-- written from them yet.
+CREATE TABLE IF NOT EXISTS textbook_chapters (
+    id TEXT PRIMARY KEY,
+    board TEXT NOT NULL,
+    class INTEGER NOT NULL,
+    subject TEXT NOT NULL,
+    book TEXT NOT NULL,
+    chapter INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    url TEXT NOT NULL,
+    topics_json TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    error TEXT,
+    question_count INTEGER NOT NULL DEFAULT 0,
+    processed_at TEXT
+);
+
 CREATE TABLE IF NOT EXISTS chat_messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -199,6 +217,9 @@ MIGRATIONS = [
     # Where a paper came from when it wasn't keralapsc.gov.in itself, e.g. a PSC Thriller post.
     ("papers", "origin", "TEXT"),
     ("papers", "origin_url", "TEXT"),
+    # Where a question's facts come from when it was written from a textbook chapter.
+    ("questions", "source_ref", "TEXT"),
+    ("questions", "source_url", "TEXT"),
 ]
 
 # Tables whose INSERTs should report the new row's id.

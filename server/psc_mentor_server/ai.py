@@ -210,6 +210,36 @@ def extract_paper(files: list[tuple[bytes, str]], answers: dict[int, int | None]
     return [by_number[n] for n in sorted(by_number)]
 
 
+TEXTBOOK_SYSTEM = """You are an experienced Kerala PSC question setter writing practice questions for the
+Degree Level Preliminary exam from a school textbook chapter. Every question must be answerable
+from a fact stated in the chapter text you are given: never rely on outside knowledge, and skip
+facts the chapter only hints at. Ask what PSC asks: names, years, places, firsts, definitions,
+articles, causes and effects, and statement-type questions ("Which of the following is/are
+correct?"). One clearly correct option and three plausible distractors.
+
+Syllabus topic ids:
+{catalog}"""
+
+
+def textbook_questions(chapter_text: str, source: str, topics: dict[str, str], count: int,
+                       catalog: str, topic_ids: list[str]) -> list[dict]:
+    """New questions grounded in one chapter. topics: {topic_id: what the syllabus lists}."""
+    prompt = (
+        f"Chapter: {source}\n"
+        f"Write {count} questions in English. The chapter most likely teaches these syllabus topics "
+        f"(topic_id: what the syllabus covers); tag each question with the best-fitting topic id, "
+        f"from this list or the full syllabus if a question fits another topic better:\n"
+        + "\n".join(f"- {t}: {d}" for t, d in topics.items())
+        + "\nSet number sequentially from 1; difficulty 1 easy, 2 medium, 3 hard (mix them). In each "
+          "explanation, say what the chapter states that makes the answer correct.\n\n"
+          "CHAPTER TEXT:\n" + chapter_text
+    )
+    # Accuracy matters as much as when reading a paper, so no lite models here either.
+    data = _json_call(TEXTBOOK_SYSTEM.format(catalog=catalog), [prompt],
+                      _question_schema(topic_ids, with_answer=True), effort="medium", task="read_paper")
+    return _clean_questions(data["questions"], with_answer=True)
+
+
 GENERATOR_SYSTEM = """You are an experienced Kerala PSC question setter. Write fresh
 multiple-choice questions in the style of recent Kerala PSC preliminary exams:
 one clearly correct option, three plausible distractors, no "all of the above"

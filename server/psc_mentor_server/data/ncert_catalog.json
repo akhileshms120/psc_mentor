@@ -1,0 +1,1127 @@
+[
+ {
+  "code": "hess2",
+  "class": 8,
+  "subject": "Social Science",
+  "book": "Our Pasts III",
+  "chapter": 2,
+  "title": "From Trade to Territory: The Company Establishes Power",
+  "topics": [
+   "history.medieval_india"
+  ]
+ },
+ {
+  "code": "hess2",
+  "class": 8,
+  "subject": "Social Science",
+  "book": "Our Pasts III",
+  "chapter": 3,
+  "title": "Ruling the Countryside",
+  "topics": [
+   "history.medieval_india"
+  ]
+ },
+ {
+  "code": "hess2",
+  "class": 8,
+  "subject": "Social Science",
+  "book": "Our Pasts III",
+  "chapter": 5,
+  "title": "When People Revolt: 1857 and After",
+  "topics": [
+   "history.freedom_struggle"
+  ]
+ },
+ {
+  "code": "hess2",
+  "class": 8,
+  "subject": "Social Science",
+  "book": "Our Pasts III",
+  "chapter": 6,
+  "title": "Civilising the 'Native', Educating the Nation",
+  "topics": [
+   "history.freedom_struggle"
+  ]
+ },
+ {
+  "code": "hess2",
+  "class": 8,
+  "subject": "Social Science",
+  "book": "Our Pasts III",
+  "chapter": 7,
+  "title": "Women, Caste and Reform",
+  "topics": [
+   "history.freedom_struggle"
+  ]
+ },
+ {
+  "code": "hess2",
+  "class": 8,
+  "subject": "Social Science",
+  "book": "Our Pasts III",
+  "chapter": 8,
+  "title": "The Making of the National Movement: 1870s-1947",
+  "topics": [
+   "history.freedom_struggle"
+  ]
+ },
+ {
+  "code": "hess3",
+  "class": 8,
+  "subject": "Social Science",
+  "book": "Social and Political Life III",
+  "chapter": 1,
+  "title": "The Indian Constitution",
+  "topics": [
+   "constitution.making_preamble",
+   "constitution.rights_duties"
+  ]
+ },
+ {
+  "code": "hess3",
+  "class": 8,
+  "subject": "Social Science",
+  "book": "Social and Political Life III",
+  "chapter": 3,
+  "title": "Parliament and the Making of Laws",
+  "topics": [
+   "civics.government"
+  ]
+ },
+ {
+  "code": "hess3",
+  "class": 8,
+  "subject": "Social Science",
+  "book": "Social and Political Life III",
+  "chapter": 4,
+  "title": "Judiciary",
+  "topics": [
+   "civics.government"
+  ]
+ },
+ {
+  "code": "hess3",
+  "class": 8,
+  "subject": "Social Science",
+  "book": "Social and Political Life III",
+  "chapter": 5,
+  "title": "Understanding Marginalisation",
+  "topics": [
+   "civics.welfare_laws"
+  ]
+ },
+ {
+  "code": "hess3",
+  "class": 8,
+  "subject": "Social Science",
+  "book": "Social and Political Life III",
+  "chapter": 6,
+  "title": "Confronting Marginalisation",
+  "topics": [
+   "civics.welfare_laws"
+  ]
+ },
+ {
+  "code": "hess3",
+  "class": 8,
+  "subject": "Social Science",
+  "book": "Social and Political Life III",
+  "chapter": 8,
+  "title": "Law and Social Justice",
+  "topics": [
+   "civics.welfare_laws"
+  ]
+ },
+ {
+  "code": "jess1",
+  "class": 10,
+  "subject": "Social Science",
+  "book": "Contemporary India II",
+  "chapter": 1,
+  "title": "Resources and Development",
+  "topics": [
+   "geography.india"
+  ]
+ },
+ {
+  "code": "jess1",
+  "class": 10,
+  "subject": "Social Science",
+  "book": "Contemporary India II",
+  "chapter": 2,
+  "title": "Forest and Wildlife Resources",
+  "topics": [
+   "geography.india",
+   "science.energy_environment"
+  ]
+ },
+ {
+  "code": "jess1",
+  "class": 10,
+  "subject": "Social Science",
+  "book": "Contemporary India II",
+  "chapter": 3,
+  "title": "Water Resources",
+  "topics": [
+   "geography.india"
+  ]
+ },
+ {
+  "code": "jess1",
+  "class": 10,
+  "subject": "Social Science",
+  "book": "Contemporary India II",
+  "chapter": 4,
+  "title": "Agriculture",
+  "topics": [
+   "geography.india"
+  ]
+ },
+ {
+  "code": "jess1",
+  "class": 10,
+  "subject": "Social Science",
+  "book": "Contemporary India II",
+  "chapter": 5,
+  "title": "Minerals and Energy Resources",
+  "topics": [
+   "geography.india",
+   "science.energy_environment"
+  ]
+ },
+ {
+  "code": "jess1",
+  "class": 10,
+  "subject": "Social Science",
+  "book": "Contemporary India II",
+  "chapter": 6,
+  "title": "Manufacturing Industries",
+  "topics": [
+   "geography.india"
+  ]
+ },
+ {
+  "code": "jess1",
+  "class": 10,
+  "subject": "Social Science",
+  "book": "Contemporary India II",
+  "chapter": 7,
+  "title": "Lifelines of National Economy",
+  "topics": [
+   "geography.india"
+  ]
+ },
+ {
+  "code": "jess2",
+  "class": 10,
+  "subject": "Social Science",
+  "book": "Understanding Economic Development",
+  "chapter": 1,
+  "title": "Development",
+  "topics": [
+   "economics.planning"
+  ]
+ },
+ {
+  "code": "jess2",
+  "class": 10,
+  "subject": "Social Science",
+  "book": "Understanding Economic Development",
+  "chapter": 2,
+  "title": "Sectors of the Indian Economy",
+  "topics": [
+   "economics.planning"
+  ]
+ },
+ {
+  "code": "jess2",
+  "class": 10,
+  "subject": "Social Science",
+  "book": "Understanding Economic Development",
+  "chapter": 3,
+  "title": "Money and Credit",
+  "topics": [
+   "economics.finance"
+  ]
+ },
+ {
+  "code": "jess2",
+  "class": 10,
+  "subject": "Social Science",
+  "book": "Understanding Economic Development",
+  "chapter": 5,
+  "title": "Consumer Rights",
+  "topics": [
+   "economics.finance",
+   "civics.welfare_laws"
+  ]
+ },
+ {
+  "code": "jess3",
+  "class": 10,
+  "subject": "Social Science",
+  "book": "India and the Contemporary World II",
+  "chapter": 1,
+  "title": "The Rise of Nationalism in Europe",
+  "topics": [
+   "history.world_history"
+  ]
+ },
+ {
+  "code": "jess3",
+  "class": 10,
+  "subject": "Social Science",
+  "book": "India and the Contemporary World II",
+  "chapter": 2,
+  "title": "Nationalism in India",
+  "topics": [
+   "history.freedom_struggle"
+  ]
+ },
+ {
+  "code": "jess4",
+  "class": 10,
+  "subject": "Social Science",
+  "book": "Democratic Politics II",
+  "chapter": 2,
+  "title": "Federalism",
+  "topics": [
+   "constitution.institutions"
+  ]
+ },
+ {
+  "code": "jess4",
+  "class": 10,
+  "subject": "Social Science",
+  "book": "Democratic Politics II",
+  "chapter": 4,
+  "title": "Political Parties",
+  "topics": [
+   "civics.government"
+  ]
+ },
+ {
+  "code": "keps1",
+  "class": 11,
+  "subject": "Political Science",
+  "book": "Political Theory",
+  "chapter": 5,
+  "title": "Rights",
+  "topics": [
+   "civics.welfare_laws",
+   "constitution.rights_duties"
+  ]
+ },
+ {
+  "code": "keps1",
+  "class": 11,
+  "subject": "Political Science",
+  "book": "Political Theory",
+  "chapter": 6,
+  "title": "Citizenship",
+  "topics": [
+   "constitution.rights_duties"
+  ]
+ },
+ {
+  "code": "keps2",
+  "class": 11,
+  "subject": "Political Science",
+  "book": "Indian Constitution at Work",
+  "chapter": 1,
+  "title": "Constitution: Why and How?",
+  "topics": [
+   "constitution.making_preamble"
+  ]
+ },
+ {
+  "code": "keps2",
+  "class": 11,
+  "subject": "Political Science",
+  "book": "Indian Constitution at Work",
+  "chapter": 2,
+  "title": "Rights in the Indian Constitution",
+  "topics": [
+   "constitution.rights_duties"
+  ]
+ },
+ {
+  "code": "keps2",
+  "class": 11,
+  "subject": "Political Science",
+  "book": "Indian Constitution at Work",
+  "chapter": 3,
+  "title": "Election and Representation",
+  "topics": [
+   "civics.government"
+  ]
+ },
+ {
+  "code": "keps2",
+  "class": 11,
+  "subject": "Political Science",
+  "book": "Indian Constitution at Work",
+  "chapter": 4,
+  "title": "Executive",
+  "topics": [
+   "civics.government",
+   "civics.public_admin"
+  ]
+ },
+ {
+  "code": "keps2",
+  "class": 11,
+  "subject": "Political Science",
+  "book": "Indian Constitution at Work",
+  "chapter": 5,
+  "title": "Legislature",
+  "topics": [
+   "civics.government"
+  ]
+ },
+ {
+  "code": "keps2",
+  "class": 11,
+  "subject": "Political Science",
+  "book": "Indian Constitution at Work",
+  "chapter": 6,
+  "title": "Judiciary",
+  "topics": [
+   "civics.government"
+  ]
+ },
+ {
+  "code": "keps2",
+  "class": 11,
+  "subject": "Political Science",
+  "book": "Indian Constitution at Work",
+  "chapter": 7,
+  "title": "Federalism",
+  "topics": [
+   "constitution.institutions"
+  ]
+ },
+ {
+  "code": "keps2",
+  "class": 11,
+  "subject": "Political Science",
+  "book": "Indian Constitution at Work",
+  "chapter": 8,
+  "title": "Local Governments",
+  "topics": [
+   "constitution.institutions"
+  ]
+ },
+ {
+  "code": "keps2",
+  "class": 11,
+  "subject": "Political Science",
+  "book": "Indian Constitution at Work",
+  "chapter": 9,
+  "title": "Constitution as a Living Document",
+  "topics": [
+   "constitution.institutions"
+  ]
+ },
+ {
+  "code": "keps2",
+  "class": 11,
+  "subject": "Political Science",
+  "book": "Indian Constitution at Work",
+  "chapter": 10,
+  "title": "The Philosophy of the Constitution",
+  "topics": [
+   "constitution.making_preamble"
+  ]
+ },
+ {
+  "code": "keec1",
+  "class": 11,
+  "subject": "Economics",
+  "book": "Indian Economic Development",
+  "chapter": 1,
+  "title": "Indian Economy on the Eve of Independence",
+  "topics": [
+   "economics.planning"
+  ]
+ },
+ {
+  "code": "keec1",
+  "class": 11,
+  "subject": "Economics",
+  "book": "Indian Economic Development",
+  "chapter": 2,
+  "title": "Indian Economy 1950-1990",
+  "topics": [
+   "economics.planning"
+  ]
+ },
+ {
+  "code": "keec1",
+  "class": 11,
+  "subject": "Economics",
+  "book": "Indian Economic Development",
+  "chapter": 3,
+  "title": "Liberalisation, Privatisation and Globalisation: An Appraisal",
+  "topics": [
+   "economics.planning"
+  ]
+ },
+ {
+  "code": "keec1",
+  "class": 11,
+  "subject": "Economics",
+  "book": "Indian Economic Development",
+  "chapter": 5,
+  "title": "Rural Development",
+  "topics": [
+   "economics.planning",
+   "civics.welfare_laws"
+  ]
+ },
+ {
+  "code": "keec1",
+  "class": 11,
+  "subject": "Economics",
+  "book": "Indian Economic Development",
+  "chapter": 6,
+  "title": "Employment: Growth, Informalisation and Other Issues",
+  "topics": [
+   "civics.welfare_laws"
+  ]
+ },
+ {
+  "code": "keec1",
+  "class": 11,
+  "subject": "Economics",
+  "book": "Indian Economic Development",
+  "chapter": 7,
+  "title": "Environment and Sustainable Development",
+  "topics": [
+   "science.energy_environment"
+  ]
+ },
+ {
+  "code": "kegy1",
+  "class": 11,
+  "subject": "Geography",
+  "book": "India Physical Environment",
+  "chapter": 1,
+  "title": "India: Location",
+  "topics": [
+   "geography.india"
+  ]
+ },
+ {
+  "code": "kegy1",
+  "class": 11,
+  "subject": "Geography",
+  "book": "India Physical Environment",
+  "chapter": 2,
+  "title": "Structure and Physiography",
+  "topics": [
+   "geography.india"
+  ]
+ },
+ {
+  "code": "kegy1",
+  "class": 11,
+  "subject": "Geography",
+  "book": "India Physical Environment",
+  "chapter": 3,
+  "title": "Drainage System",
+  "topics": [
+   "geography.india"
+  ]
+ },
+ {
+  "code": "kegy1",
+  "class": 11,
+  "subject": "Geography",
+  "book": "India Physical Environment",
+  "chapter": 4,
+  "title": "Climate",
+  "topics": [
+   "geography.india"
+  ]
+ },
+ {
+  "code": "kegy1",
+  "class": 11,
+  "subject": "Geography",
+  "book": "India Physical Environment",
+  "chapter": 5,
+  "title": "Natural Vegetation",
+  "topics": [
+   "geography.india"
+  ]
+ },
+ {
+  "code": "kegy2",
+  "class": 11,
+  "subject": "Geography",
+  "book": "Fundamentals of Physical Geography",
+  "chapter": 2,
+  "title": "The Origin and Evolution of the Earth",
+  "topics": [
+   "geography.world_physical"
+  ]
+ },
+ {
+  "code": "kegy2",
+  "class": 11,
+  "subject": "Geography",
+  "book": "Fundamentals of Physical Geography",
+  "chapter": 3,
+  "title": "Interior of the Earth",
+  "topics": [
+   "geography.world_physical"
+  ]
+ },
+ {
+  "code": "kegy2",
+  "class": 11,
+  "subject": "Geography",
+  "book": "Fundamentals of Physical Geography",
+  "chapter": 4,
+  "title": "Distribution of Oceans and Continents",
+  "topics": [
+   "geography.world_physical"
+  ]
+ },
+ {
+  "code": "kegy2",
+  "class": 11,
+  "subject": "Geography",
+  "book": "Fundamentals of Physical Geography",
+  "chapter": 6,
+  "title": "Landforms and their Evolution",
+  "topics": [
+   "geography.world_physical"
+  ]
+ },
+ {
+  "code": "kegy2",
+  "class": 11,
+  "subject": "Geography",
+  "book": "Fundamentals of Physical Geography",
+  "chapter": 7,
+  "title": "Composition and Structure of Atmosphere",
+  "topics": [
+   "geography.world_physical"
+  ]
+ },
+ {
+  "code": "kegy2",
+  "class": 11,
+  "subject": "Geography",
+  "book": "Fundamentals of Physical Geography",
+  "chapter": 8,
+  "title": "Solar Radiation, Heat Balance and Temperature",
+  "topics": [
+   "geography.world_physical"
+  ]
+ },
+ {
+  "code": "kegy2",
+  "class": 11,
+  "subject": "Geography",
+  "book": "Fundamentals of Physical Geography",
+  "chapter": 9,
+  "title": "Atmospheric Circulation and Weather Systems",
+  "topics": [
+   "geography.world_physical"
+  ]
+ },
+ {
+  "code": "kegy2",
+  "class": 11,
+  "subject": "Geography",
+  "book": "Fundamentals of Physical Geography",
+  "chapter": 11,
+  "title": "World Climate and Climate Change",
+  "topics": [
+   "geography.world_physical",
+   "science.energy_environment"
+  ]
+ },
+ {
+  "code": "kegy2",
+  "class": 11,
+  "subject": "Geography",
+  "book": "Fundamentals of Physical Geography",
+  "chapter": 12,
+  "title": "Water (Oceans)",
+  "topics": [
+   "geography.world_physical"
+  ]
+ },
+ {
+  "code": "kegy2",
+  "class": 11,
+  "subject": "Geography",
+  "book": "Fundamentals of Physical Geography",
+  "chapter": 13,
+  "title": "Movements of Ocean Water",
+  "topics": [
+   "geography.world_physical"
+  ]
+ },
+ {
+  "code": "kegy2",
+  "class": 11,
+  "subject": "Geography",
+  "book": "Fundamentals of Physical Geography",
+  "chapter": 14,
+  "title": "Biodiversity and Conservation",
+  "topics": [
+   "science.energy_environment"
+  ]
+ },
+ {
+  "code": "kehs1",
+  "class": 11,
+  "subject": "History",
+  "book": "Themes in World History",
+  "chapter": 7,
+  "title": "Paths to Modernisation",
+  "topics": [
+   "history.world_history"
+  ]
+ },
+ {
+  "code": "kefa1",
+  "class": 11,
+  "subject": "Fine Art",
+  "book": "An Introduction to Indian Art I",
+  "chapter": 5,
+  "title": "Later Mural Traditions",
+  "topics": [
+   "culture.arts"
+  ]
+ },
+ {
+  "code": "kefa1",
+  "class": 11,
+  "subject": "Fine Art",
+  "book": "An Introduction to Indian Art I",
+  "chapter": 6,
+  "title": "Temple Architecture and Sculpture",
+  "topics": [
+   "culture.arts"
+  ]
+ },
+ {
+  "code": "kefa1",
+  "class": 11,
+  "subject": "Fine Art",
+  "book": "An Introduction to Indian Art I",
+  "chapter": 7,
+  "title": "Indian Bronze Sculpture",
+  "topics": [
+   "culture.arts"
+  ]
+ },
+ {
+  "code": "kecs1",
+  "class": 11,
+  "subject": "Computer Science",
+  "book": "Computer Science",
+  "chapter": 1,
+  "title": "Computer System",
+  "topics": [
+   "computer.hardware_software"
+  ]
+ },
+ {
+  "code": "kecs1",
+  "class": 11,
+  "subject": "Computer Science",
+  "book": "Computer Science",
+  "chapter": 3,
+  "title": "Emerging Trends",
+  "topics": [
+   "computer.hardware_software",
+   "computer.networks_internet"
+  ]
+ },
+ {
+  "code": "leps1",
+  "class": 12,
+  "subject": "Political Science",
+  "book": "Contemporary World Politics",
+  "chapter": 1,
+  "title": "The End of Bipolarity",
+  "topics": [
+   "history.world_history"
+  ]
+ },
+ {
+  "code": "leps1",
+  "class": 12,
+  "subject": "Political Science",
+  "book": "Contemporary World Politics",
+  "chapter": 4,
+  "title": "International Organisations",
+  "topics": [
+   "history.world_history"
+  ]
+ },
+ {
+  "code": "leps2",
+  "class": 12,
+  "subject": "Political Science",
+  "book": "Politics in India since Independence",
+  "chapter": 1,
+  "title": "Challenges of Nation Building",
+  "topics": [
+   "history.post_independence"
+  ]
+ },
+ {
+  "code": "leps2",
+  "class": 12,
+  "subject": "Political Science",
+  "book": "Politics in India since Independence",
+  "chapter": 2,
+  "title": "Era of One-party Dominance",
+  "topics": [
+   "history.post_independence"
+  ]
+ },
+ {
+  "code": "leps2",
+  "class": 12,
+  "subject": "Political Science",
+  "book": "Politics in India since Independence",
+  "chapter": 3,
+  "title": "Politics of Planned Development",
+  "topics": [
+   "history.post_independence",
+   "economics.planning"
+  ]
+ },
+ {
+  "code": "leps2",
+  "class": 12,
+  "subject": "Political Science",
+  "book": "Politics in India since Independence",
+  "chapter": 4,
+  "title": "India's External Relations",
+  "topics": [
+   "history.post_independence"
+  ]
+ },
+ {
+  "code": "leps2",
+  "class": 12,
+  "subject": "Political Science",
+  "book": "Politics in India since Independence",
+  "chapter": 6,
+  "title": "The Crisis of Democratic Order",
+  "topics": [
+   "history.post_independence",
+   "constitution.institutions"
+  ]
+ },
+ {
+  "code": "leps2",
+  "class": 12,
+  "subject": "Political Science",
+  "book": "Politics in India since Independence",
+  "chapter": 7,
+  "title": "Regional Aspirations",
+  "topics": [
+   "history.post_independence"
+  ]
+ },
+ {
+  "code": "legy2",
+  "class": 12,
+  "subject": "Geography",
+  "book": "India People and Economy",
+  "chapter": 3,
+  "title": "Land Resources and Agriculture",
+  "topics": [
+   "geography.india"
+  ]
+ },
+ {
+  "code": "legy2",
+  "class": 12,
+  "subject": "Geography",
+  "book": "India People and Economy",
+  "chapter": 7,
+  "title": "Transport and Communication",
+  "topics": [
+   "geography.india"
+  ]
+ },
+ {
+  "code": "lehs2",
+  "class": 12,
+  "subject": "History",
+  "book": "Themes in Indian History II",
+  "chapter": 3,
+  "title": "An Imperial Capital: Vijayanagara",
+  "topics": [
+   "history.medieval_india"
+  ]
+ },
+ {
+  "code": "lehs2",
+  "class": 12,
+  "subject": "History",
+  "book": "Themes in Indian History II",
+  "chapter": 4,
+  "title": "Peasants, Zamindars and the State",
+  "topics": [
+   "history.medieval_india"
+  ]
+ },
+ {
+  "code": "lehs3",
+  "class": 12,
+  "subject": "History",
+  "book": "Themes in Indian History III",
+  "chapter": 2,
+  "title": "Rebels and the Raj: The Revolt of 1857 and its Representations",
+  "topics": [
+   "history.freedom_struggle"
+  ]
+ },
+ {
+  "code": "lehs3",
+  "class": 12,
+  "subject": "History",
+  "book": "Themes in Indian History III",
+  "chapter": 3,
+  "title": "Mahatma Gandhi and the Nationalist Movement",
+  "topics": [
+   "history.freedom_struggle"
+  ]
+ },
+ {
+  "code": "lehs3",
+  "class": 12,
+  "subject": "History",
+  "book": "Themes in Indian History III",
+  "chapter": 4,
+  "title": "Framing the Constitution",
+  "topics": [
+   "constitution.making_preamble"
+  ]
+ },
+ {
+  "code": "leec1",
+  "class": 12,
+  "subject": "Economics",
+  "book": "Introductory Macroeconomics",
+  "chapter": 2,
+  "title": "National Income Accounting",
+  "topics": [
+   "economics.planning"
+  ]
+ },
+ {
+  "code": "leec1",
+  "class": 12,
+  "subject": "Economics",
+  "book": "Introductory Macroeconomics",
+  "chapter": 3,
+  "title": "Money and Banking",
+  "topics": [
+   "economics.finance"
+  ]
+ },
+ {
+  "code": "leec1",
+  "class": 12,
+  "subject": "Economics",
+  "book": "Introductory Macroeconomics",
+  "chapter": 5,
+  "title": "Government Budget and the Economy",
+  "topics": [
+   "economics.finance"
+  ]
+ },
+ {
+  "code": "lebo1",
+  "class": 12,
+  "subject": "Biology",
+  "book": "Biology",
+  "chapter": 7,
+  "title": "Human Health and Disease",
+  "topics": [
+   "science.health"
+  ]
+ },
+ {
+  "code": "lebo1",
+  "class": 12,
+  "subject": "Biology",
+  "book": "Biology",
+  "chapter": 10,
+  "title": "Biotechnology and its Applications",
+  "topics": [
+   "science.energy_environment"
+  ]
+ },
+ {
+  "code": "fecu1",
+  "class": 6,
+  "subject": "Science",
+  "book": "Curiosity",
+  "chapter": 3,
+  "title": "Mindful Eating: A Path to a Healthy Body",
+  "topics": [
+   "science.health"
+  ]
+ },
+ {
+  "code": "fecu1",
+  "class": 6,
+  "subject": "Science",
+  "book": "Curiosity",
+  "chapter": 12,
+  "title": "Beyond Earth",
+  "topics": [
+   "science.everyday",
+   "science.space_defence"
+  ]
+ },
+ {
+  "code": "gecu1",
+  "class": 7,
+  "subject": "Science",
+  "book": "Curiosity",
+  "chapter": 2,
+  "title": "Exploring Substances: Acidic, Basic, and Neutral",
+  "topics": [
+   "science.everyday"
+  ]
+ },
+ {
+  "code": "gecu1",
+  "class": 7,
+  "subject": "Science",
+  "book": "Curiosity",
+  "chapter": 3,
+  "title": "Electricity: Circuits and their Components",
+  "topics": [
+   "science.everyday"
+  ]
+ },
+ {
+  "code": "gecu1",
+  "class": 7,
+  "subject": "Science",
+  "book": "Curiosity",
+  "chapter": 9,
+  "title": "Life Processes in Animals",
+  "topics": [
+   "science.health"
+  ]
+ },
+ {
+  "code": "hemh1",
+  "class": 8,
+  "subject": "Mathematics",
+  "book": "Mathematics",
+  "chapter": 7,
+  "title": "Comparing Quantities",
+  "topics": [
+   "arithmetic.percentage",
+   "arithmetic.interest"
+  ]
+ },
+ {
+  "code": "hemh1",
+  "class": 8,
+  "subject": "Mathematics",
+  "book": "Mathematics",
+  "chapter": 9,
+  "title": "Mensuration",
+  "topics": [
+   "arithmetic.mensuration_progressions"
+  ]
+ },
+ {
+  "code": "hemh1",
+  "class": 8,
+  "subject": "Mathematics",
+  "book": "Mathematics",
+  "chapter": 10,
+  "title": "Exponents and Powers",
+  "topics": [
+   "arithmetic.numbers"
+  ]
+ },
+ {
+  "code": "hemh1",
+  "class": 8,
+  "subject": "Mathematics",
+  "book": "Mathematics",
+  "chapter": 11,
+  "title": "Direct and Inverse Proportions",
+  "topics": [
+   "arithmetic.ratio_average",
+   "arithmetic.time_work_distance"
+  ]
+ },
+ {
+  "code": "jemh1",
+  "class": 10,
+  "subject": "Mathematics",
+  "book": "Mathematics",
+  "chapter": 1,
+  "title": "Real Numbers",
+  "topics": [
+   "arithmetic.numbers"
+  ]
+ },
+ {
+  "code": "jemh1",
+  "class": 10,
+  "subject": "Mathematics",
+  "book": "Mathematics",
+  "chapter": 5,
+  "title": "Arithmetic Progressions",
+  "topics": [
+   "arithmetic.mensuration_progressions"
+  ]
+ },
+ {
+  "code": "fegp1",
+  "class": 6,
+  "subject": "Mathematics",
+  "book": "Ganita Prakash",
+  "chapter": 6,
+  "title": "Perimeter and Area",
+  "topics": [
+   "arithmetic.mensuration_progressions"
+  ]
+ },
+ {
+  "code": "fegp1",
+  "class": 6,
+  "subject": "Mathematics",
+  "book": "Ganita Prakash",
+  "chapter": 7,
+  "title": "Fractions",
+  "topics": [
+   "arithmetic.numbers"
+  ]
+ },
+ {
+  "code": "gegp1",
+  "class": 7,
+  "subject": "Mathematics",
+  "book": "Ganita Prakash",
+  "chapter": 3,
+  "title": "A Peek Beyond the Point",
+  "topics": [
+   "arithmetic.numbers"
+  ]
+ }
+]
