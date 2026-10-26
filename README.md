@@ -106,9 +106,10 @@ flutter pub get
 flutter run            # pick a device
 ```
 
-The app talks to `http://localhost:8000` (Android emulator: `http://10.0.2.2:8000`). On a real
-phone, set the server address in Home → settings to `http://<your-computer-ip>:8000`.
-Plain HTTP is allowed for local development; put the server behind HTTPS before publishing.
+The app uses the hosted server `https://psc-mentor-api.onrender.com` by default, so nothing needs to
+run on your computer. To use a server running on this computer instead:
+`flutter run --dart-define=PSC_API_URL=http://localhost:8000` (Android emulator: `http://10.0.2.2:8000`),
+or change it in the app under *Server settings* (which also has a **Use hosted server** button).
 
 Tests: `flutter test`.
 

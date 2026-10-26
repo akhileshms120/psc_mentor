@@ -202,11 +202,20 @@ class _ServerSettingsScreenState extends State<ServerSettingsScreen> {
             controller: _server,
             decoration: const InputDecoration(
               labelText: 'PSC Mentor server address',
-              helperText: 'Android emulator: http://10.0.2.2:8000 · phone on Wi-Fi: http://<computer-ip>:8000',
+              helperText: 'Hosted: ${Api.hostedUrl} · server on this computer: http://localhost:8000',
             ),
           ),
           const SizedBox(height: 12),
-          OutlinedButton(onPressed: _test, child: const Text('Save & test connection')),
+          Wrap(spacing: 12, runSpacing: 8, children: [
+            OutlinedButton(onPressed: _test, child: const Text('Save & test connection')),
+            TextButton(
+              onPressed: () {
+                _server.text = Api.hostedUrl;
+                _test();
+              },
+              child: const Text('Use hosted server'),
+            ),
+          ]),
           if (_status != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_status!)),
         ],
       ),

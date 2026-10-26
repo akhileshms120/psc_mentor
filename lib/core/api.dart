@@ -52,14 +52,12 @@ class Api {
   http.Client client = http.Client();
 
   /// Built into release apps: `flutter build apk --dart-define=PSC_API_URL=https://NAME.onrender.com`
-  static const _builtInUrl = String.fromEnvironment('PSC_API_URL');
+  /// The hosted server. Override for local development with
+  /// `flutter run --dart-define=PSC_API_URL=http://localhost:8000`.
+  static const hostedUrl = 'https://psc-mentor-api.onrender.com';
+  static const _builtInUrl = String.fromEnvironment('PSC_API_URL', defaultValue: hostedUrl);
 
-  static String get defaultUrl {
-    if (_builtInUrl.isNotEmpty) return _builtInUrl;
-    // The Android emulator reaches the host machine on 10.0.2.2.
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) return 'http://10.0.2.2:8000';
-    return 'http://localhost:8000';
-  }
+  static String get defaultUrl => _builtInUrl;
 
   Future<void> load() async {
     try {
