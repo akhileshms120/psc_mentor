@@ -1,0 +1,22 @@
+name: psc_mentor
+description: Cross-platform Kerala PSC Mentor starter app for Android, iOS, macOS, and Windows.
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+
+dependencies:
+  file_picker: ^13.3.0
+  flutter:
+    sdk: flutter
+  http: ^1.6.0
+  http_parser: ^4.1.2
+  shared_preferences: ^2.5.6
+
+flutter:
+  uses-material-design: true
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0

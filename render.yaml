@@ -1,0 +1,30 @@
+# Render Blueprint for the PSC Mentor backend.
+# Render dashboard → New → Blueprint → pick this repository. Render asks for the two
+# secret values below (sync: false) when you create it.
+services:
+  - type: web
+    name: psc-mentor-api
+    runtime: python
+    plan: free
+    rootDir: server
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn psc_mentor_server.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.5
+      # Free Render services lose their disk on every restart, so accounts and progress
+      # must live in an outside Postgres database, e.g. a free Neon project (neon.tech).
+      # Paste its pooled connection string here (host contains -pooler).
+      - key: DATABASE_URL
+        sync: false
+      # Neon's direct (non -pooler) connection string, used only to create tables at startup.
+      - key: DATABASE_URL_UNPOOLED
+        sync: false
+      # Optional: enables the AI mentor, Malayalam papers and question generation.
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      # Downloaded PDFs are only a cache, so the temporary disk is fine for them.
+      - key: PSC_DATA_DIR
+        value: /tmp/psc-mentor
