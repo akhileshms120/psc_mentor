@@ -198,6 +198,11 @@ class Api {
 
   Future<StrengthReport> analysis() async => StrengthReport.fromJson(await _send('GET', '/analysis'));
 
+  Future<List<TopicVideo>> topicVideos(String topicId) async =>
+      ((await _send('GET', '/topics/${Uri.encodeComponent(topicId)}/videos'))['videos'] as List)
+          .map((v) => TopicVideo.fromJson(v as Json))
+          .toList();
+
   Future<List<PlanItem>> week() async =>
       (await _send('GET', '/plan/week') as List).map((p) => PlanItem.fromJson(p as Json)).toList();
 

@@ -148,6 +148,27 @@ CREATE TABLE IF NOT EXISTS plan_items (
 );
 CREATE INDEX IF NOT EXISTS idx_plan_user_week ON plan_items(user_id, week_start);
 
+-- Most-viewed YouTube lessons per topic, cached because each search costs YouTube API quota.
+CREATE TABLE IF NOT EXISTS topic_videos (
+    topic_id TEXT NOT NULL REFERENCES topics(id),
+    rank INTEGER NOT NULL,
+    video_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    channel TEXT NOT NULL,
+    views INTEGER NOT NULL,
+    duration_seconds INTEGER NOT NULL,
+    thumbnail TEXT,
+    published_at TEXT,
+    fetched_at TEXT NOT NULL,
+    PRIMARY KEY (topic_id, rank)
+);
+
+-- When each topic was last searched, even if the search found nothing worth showing.
+CREATE TABLE IF NOT EXISTS topic_video_fetches (
+    topic_id TEXT PRIMARY KEY REFERENCES topics(id),
+    fetched_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS chat_messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

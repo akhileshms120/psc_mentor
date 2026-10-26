@@ -27,6 +27,10 @@ GEMINI_READER_MODELS = [m.strip() for m in os.environ.get(
     "PSC_GEMINI_READER_MODELS", "gemini-3.5-flash,gemini-3-flash-preview,gemini-3.6-flash").split(",") if m.strip()]
 
 
+# YouTube Data API v3 key for the "most-viewed lesson videos" per topic.
+YOUTUBE_API_KEY = os.environ.get("YOUTUBE_API_KEY")
+
+
 def google_api_key() -> str | None:
     return os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
 

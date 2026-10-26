@@ -155,6 +155,22 @@ void main() {
         '/analysis' => _report,
         '/plan/week' => _plan,
         '/papers/sync' => {'running': false, 'imported': 0, 'failed': 0, 'queued': 0, 'last_run': null},
+        '/topics/constitution.rights_duties/videos' => {
+            'topic_id': 'constitution.rights_duties',
+            'stale': false,
+            'videos': [
+              {
+                'video_id': 'abc',
+                'title': 'Fundamental Rights | Kerala PSC Degree Prelims',
+                'channel': 'PSC Talks',
+                'views': 1234567,
+                'duration_seconds': 1510,
+                'thumbnail': null,
+                'published_at': '2026-01-01T00:00:00Z',
+                'url': 'https://www.youtube.com/watch?v=abc',
+              },
+            ],
+          },
         '/tests' when request.method == 'POST' => _test,
         _ => <String, Object>{},
       };
@@ -221,6 +237,16 @@ void main() {
     expect(find.text('Which is the longest river in Kerala?'), findsOneWidget);
     expect(find.text('Periyar'), findsOneWidget);
     expect(find.text('15:00'), findsOneWidget);
+  });
+
+  testWidgets('a study block shows the most-viewed YouTube lessons for its topic', (tester) async {
+    await start(tester);
+    await tester.tap(find.byTooltip('Top YouTube lessons').first);
+    await tester.pumpAndSettle();
+    expect(calls, contains('GET /topics/constitution.rights_duties/videos'));
+    expect(find.textContaining('Fundamental Rights | Kerala PSC'), findsOneWidget);
+    expect(find.text('PSC Talks · 1.2M views'), findsOneWidget);
+    expect(find.text('25:10'), findsOneWidget);
   });
 
   test('question source labels', () {

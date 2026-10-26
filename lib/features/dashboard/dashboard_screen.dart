@@ -7,6 +7,7 @@ import '../analysis/analysis_screen.dart';
 import '../mentor/mentor_screen.dart';
 import '../profile/profile_screen.dart';
 import '../tests/test_runner.dart';
+import '../videos/topic_videos_sheet.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -194,6 +195,12 @@ class _PlanTile extends StatelessWidget {
           spacing: 4,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
+            if (item.kind == 'study' && item.topicId != null)
+              IconButton(
+                tooltip: 'Top YouTube lessons',
+                icon: const Icon(Icons.smart_display_outlined),
+                onPressed: () => showTopicVideos(context, topicId: item.topicId!, topic: item.topic ?? ''),
+              ),
             if (item.kind == 'study')
               IconButton(
                 tooltip: 'Learn with mentor',

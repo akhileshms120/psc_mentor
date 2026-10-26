@@ -175,3 +175,9 @@ def test_delete_account_removes_the_student_and_private_uploads(client, app_clie
         assert db.one(f"SELECT COUNT(*) AS n FROM {table}")["n"] == 0, table
     assert db.one("SELECT COUNT(*) AS n FROM questions")["n"] == bank - 1  # only the private upload went
     signup(app_client)  # the phone number can be used again
+
+
+def test_topic_videos_endpoint_without_key(client):
+    assert client.get("/topics/x.y/videos").status_code == 404
+    resp = client.get("/topics/constitution.rights_duties/videos")
+    assert resp.status_code == 503 and "YOUTUBE_API_KEY" in resp.json()["detail"]

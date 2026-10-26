@@ -9,7 +9,7 @@ from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, Header, HTTPE
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from . import ai, analysis, auth, engine, importer, mentor, planner, progress, psc_source, sync
+from . import ai, analysis, auth, engine, importer, mentor, planner, progress, psc_source, sync, videos
 from .config import DATABASE_URL, DATABASE_URL_UNPOOLED, DB_PATH, ai_enabled, ai_provider
 from .db import Database, open_database
 from .seed_questions import seed_questions
@@ -203,6 +203,13 @@ def create_app(db: Database | None = None, today: Callable[[], date] = date.toda
     @app.get("/analysis")
     def strength_report(user_id: User):
         return analysis.report(db, user_id, today())
+
+    @app.get("/topics/{topic_id}/videos")
+    def topic_videos(topic_id: str, user_id: User):
+        try:
+            return videos.topic_videos(db, topic_id)
+        except videos.VideoError as e:
+            raise HTTPException(404 if "Unknown topic" in str(e) else 503, str(e))
 
     @app.get("/plan/week")
     def week(user_id: User):

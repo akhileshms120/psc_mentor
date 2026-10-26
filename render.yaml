@@ -26,6 +26,9 @@ services:
       # Malayalam/scanned papers, answering uploads without a key, and new questions.
       - key: GEMINI_API_KEY
         sync: false
+      # YouTube Data API v3 key: shows the most-viewed Kerala PSC lessons for each topic.
+      - key: YOUTUBE_API_KEY
+        sync: false
       # Downloaded PDFs are only a cache, so the temporary disk is fine for them.
       - key: PSC_DATA_DIR
         value: /tmp/psc-mentor

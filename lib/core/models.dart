@@ -424,3 +424,35 @@ class SyncState {
   final int queued;
   final String? lastRun;
 }
+
+class TopicVideo {
+  TopicVideo.fromJson(Json j)
+      : videoId = j['video_id'] as String,
+        title = j['title'] as String,
+        channel = j['channel'] as String,
+        views = j['views'] as int,
+        durationSeconds = j['duration_seconds'] as int,
+        thumbnail = j['thumbnail'] as String?,
+        url = j['url'] as String;
+
+  final String videoId;
+  final String title;
+  final String channel;
+  final int views;
+  final int durationSeconds;
+  final String? thumbnail;
+  final String url;
+
+  /// 1,234,567 -> "1.2M views"
+  String get viewsLabel {
+    if (views >= 1000000) return '${(views / 1000000).toStringAsFixed(1)}M views';
+    if (views >= 1000) return '${(views / 1000).toStringAsFixed(views >= 100000 ? 0 : 1)}K views';
+    return '$views views';
+  }
+
+  String get durationLabel {
+    final h = durationSeconds ~/ 3600, m = (durationSeconds % 3600) ~/ 60, s = durationSeconds % 60;
+    final mm = m.toString().padLeft(h > 0 ? 2 : 1, '0'), ss = s.toString().padLeft(2, '0');
+    return h > 0 ? '$h:$mm:$ss' : '$mm:$ss';
+  }
+}

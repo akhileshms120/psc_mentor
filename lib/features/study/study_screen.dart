@@ -5,6 +5,7 @@ import '../../core/models.dart';
 import '../../core/ui.dart';
 import '../mentor/mentor_screen.dart';
 import '../tests/test_runner.dart';
+import '../videos/topic_videos_sheet.dart';
 
 class StudyScreen extends StatelessWidget {
   const StudyScreen({super.key});
@@ -60,6 +61,11 @@ class _TopicTile extends StatelessWidget {
       trailing: Wrap(
         spacing: 4,
         children: [
+          IconButton(
+            tooltip: 'Top YouTube lessons',
+            icon: const Icon(Icons.smart_display_outlined),
+            onPressed: () => showTopicVideos(context, topicId: t.topicId, topic: t.topic),
+          ),
           IconButton(
             tooltip: 'Learn with mentor',
             icon: const Icon(Icons.chat_outlined),

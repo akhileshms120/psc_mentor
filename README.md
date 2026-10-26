@@ -25,6 +25,10 @@ Two parts:
    It becomes a timed test, and every attempt can be reviewed question by question. Without a key,
    the AI works out the answers (labelled "AI-answered"). Uploads are private to the student.
 6. **Mentor chat:** the AI mentor (Gemini) sees the strength report and plan, and can create tests, show real PYQs and re-plan.
+7. **Top YouTube lessons:** every topic (Study tab, and each study block on Home) lists the 3 most-viewed
+   Kerala PSC lessons on YouTube, at least 3 minutes long and mentioning PSC, with view counts.
+   Needs `YOUTUBE_API_KEY` (Google Cloud → enable *YouTube Data API v3* → Credentials → API key).
+   Results are cached for 7 days per topic: a search costs 100 of YouTube's free 10,000 daily units.
 
 ### Latest questions from the internet
 The server checks keralapsc.gov.in at startup and every 12 hours. It imports the newest
