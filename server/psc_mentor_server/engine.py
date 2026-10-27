@@ -19,6 +19,7 @@ TEST_SIZES = {
     "monthly": (EXAM_QUESTIONS, EXAM_MINUTES),
     "diagnostic": (EXAM_QUESTIONS, EXAM_MINUTES),
     "mistakes": (25, 25),
+    "textbook": (20, 20),
 }
 TEST_TITLES = {
     "topic": "Topic test",
@@ -28,6 +29,7 @@ TEST_TITLES = {
     "diagnostic": f"{EXAM_NAME} diagnostic mock",
     "mistakes": "Mistake bank retest",
     "paper": "Previous paper",
+    "textbook": "NCERT textbook practice",
 }
 PLAN_KIND = {"daily": "daily_test", "weekly": "weekly_test", "monthly": "monthly_mock",
              "mistakes": "revision"}
@@ -217,7 +219,7 @@ def _fill(db: Database, user_id: int, quota: dict[str, int], today: date, allow_
 
 
 def create_test(db: Database, user_id: int, type: str, today: date, topic_id: str | None = None,
-                paper_id: int | None = None, allow_generate: bool = True) -> int:
+                paper_id: int | None = None, allow_generate: bool = True, chapter_id: str | None = None) -> int:
     profile = db.one("SELECT language FROM profiles WHERE user_id = ?", (user_id,))
     language = profile["language"]
     title = TEST_TITLES.get(type)
@@ -235,6 +237,29 @@ def create_test(db: Database, user_id: int, type: str, today: date, topic_id: st
         suffix = paper["paper_code"] or paper["test_date"]
         title = f"{paper['title']} ({suffix})" if suffix else paper["title"]
         minutes = max(round(len(ids) * 0.75), 10)
+    elif type == "textbook":
+        # Questions the AI wrote from NCERT chapters: one chapter, one topic, or all of them.
+        size, minutes = TEST_SIZES[type]
+        where, params = ["q.verification = 'textbook_ai'"], []
+        if chapter_id:
+            chapter = db.one("SELECT url, chapter, book FROM textbook_chapters WHERE id = ?", (chapter_id,))
+            if not chapter:
+                raise TestError("Chapter not found")
+            where.append("q.source_url = ?")
+            params.append(chapter["url"])
+            title = f"{title}: {chapter['book']} Ch {chapter['chapter']}"
+        if topic_id:
+            where.append("q.topic_id = ?")
+            params.append(topic_id)
+        rows = db.query(
+            f"SELECT q.id, (SELECT MAX(a.answered_at) FROM attempts a WHERE a.question_id = q.id AND a.user_id = ?) "
+            f"AS last_seen FROM questions q WHERE {' AND '.join(where)}", [user_id, *params])
+        random.shuffle(rows)
+        rows.sort(key=lambda r: r["last_seen"] or "")  # unseen first
+        ids = [r["id"] for r in rows[:size]]
+        if not ids:
+            raise TestError("No textbook questions yet. Use 'Make questions' on a chapter first.")
+        minutes = max(len(ids), 5)
     elif type == "mistakes":
         size, minutes = TEST_SIZES[type]
         ids = due_revision_ids(db, user_id, today, limit=size)

@@ -561,3 +561,30 @@ class TextbookChapter {
   final String title;
   final String url;
 }
+
+class NcertChapter {
+  NcertChapter.fromJson(Json j)
+      : id = j['id'] as String,
+        classNo = j['class'] as int,
+        subject = j['subject'] as String,
+        book = j['book'] as String,
+        chapter = j['chapter'] as int,
+        title = j['title'] as String,
+        url = j['url'] as String,
+        status = j['status'] as String,
+        error = j['error'] as String?,
+        questions = j['questions'] as int,
+        topics = [for (final t in j['topics'] as List) (t as Json)['topic'] as String];
+
+  final String id;
+  final int classNo;
+  final String subject;
+  final String book;
+  final int chapter;
+  final String title;
+  final String url;
+  final String status;
+  final String? error;
+  final int questions;
+  final List<String> topics;
+}

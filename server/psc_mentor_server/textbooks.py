@@ -45,6 +45,8 @@ def seed_catalog(db: Database, catalog: list[dict] | None = None) -> None:
         cid = f"ncert:{c['code']}:{c['chapter']}"
         rows.append((cid, "NCERT", c["class"], c["subject"], c["book"], c["chapter"], c["title"],
                      chapter_url(c["code"], c["chapter"]), json.dumps(c["topics"])))
+    # A restart mid-way through "Make questions" leaves no task running; let the sync pick it up again.
+    db.execute("UPDATE textbook_chapters SET status = 'pending' WHERE status = 'working'")
     if rows:
         db.executemany(
             "INSERT INTO textbook_chapters (id, board, class, subject, book, chapter, title, url, topics_json) "
@@ -62,6 +64,16 @@ def chapters_for_topic(db: Database, topic_id: str) -> list[dict]:
     return [{"id": r["id"], "board": r["board"], "class": r["class"], "book": r["book"], "chapter": r["chapter"],
              "title": r["title"], "url": r["url"], "ref": source_ref(r), "questions": r["question_count"]}
             for r in rows]
+
+
+def all_chapters(db: Database) -> list[dict]:
+    """Every mapped chapter with its topics and progress, for the Textbook Questions screen."""
+    names = {r["id"]: r["name"] for r in db.query("SELECT id, name FROM topics")}
+    return [{"id": r["id"], "board": r["board"], "class": r["class"], "subject": r["subject"], "book": r["book"],
+             "chapter": r["chapter"], "title": r["title"], "url": r["url"], "status": r["status"],
+             "error": r["error"], "questions": r["question_count"],
+             "topics": [{"topic_id": t, "topic": names.get(t, t)} for t in json.loads(r["topics_json"])]}
+            for r in db.query("SELECT * FROM textbook_chapters ORDER BY subject, class, book, chapter")]
 
 
 def chapter_text(pdf: bytes) -> str:

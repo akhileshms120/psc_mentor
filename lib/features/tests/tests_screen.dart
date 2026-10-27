@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/api.dart';
 import '../../core/models.dart';
 import '../../core/ui.dart';
+import '../textbooks/textbook_screen.dart';
 import 'test_runner.dart';
 
 class TestsScreen extends StatelessWidget {
@@ -40,6 +41,15 @@ class TestsScreen extends StatelessWidget {
             title: 'Mistake Bank',
             description: 'Retest questions you answered wrongly, on a spaced-revision schedule.',
             icon: Icons.replay_circle_filled_outlined,
+          ),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.auto_stories_outlined),
+              title: const Text('NCERT Textbook Practice'),
+              subtitle: const Text('Questions written from NCERT chapters; pick a chapter or practise them all.'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const TextbookScreen())),
+            ),
           ),
           const Card(
             child: ListTile(

@@ -91,3 +91,32 @@ def test_textbook_questions_show_their_source_in_review(catalog, user):
     result = engine.submit_test(catalog, user, test_id, {}, TODAY)
     q = next(q for q in result["questions"] if q["id"] == qid)
     assert q["source_ref"].endswith("Money and Credit")
+
+
+def test_chapter_list_make_questions_and_practice(catalog, user, monkeypatch):
+    from fastapi.testclient import TestClient
+    from psc_mentor_server.main import create_app
+    from .test_api import signup
+    app = create_app(catalog, today=lambda: TODAY, auto_sync=False)
+    c = TestClient(app)
+    c.headers.update(signup(c, login="tb@example.com"))
+    chapters = c.get("/textbooks/chapters").json()
+    assert {ch["id"] for ch in chapters} >= {"ncert:keps2:2", "ncert:jess2:3"}
+    assert chapters[0]["topics"][0]["topic"]
+    assert c.post("/textbooks/chapters/ncert:keps2:2/generate").status_code == 503  # AI off
+    assert c.post("/tests", json={"type": "textbook"}).status_code == 400  # nothing written yet
+
+    from psc_mentor_server import main
+    monkeypatch.setattr(main, "ai_enabled", lambda: True)
+    monkeypatch.setattr(textbooks, "fetch_chapter", lambda url: TEXT_PDF)
+    monkeypatch.setattr(ai, "textbook_questions", lambda *a, **k: [
+        {"number": i, "stem": f"Textbook rights question {i}?", "options": ["a", "b", "c", "d"], "answer_index": 1,
+         "topic_id": "constitution.rights_duties", "explanation": "chapter", "difficulty": 2} for i in range(4)])
+    app = create_app(catalog, today=lambda: TODAY, auto_sync=False)
+    c2 = TestClient(app)
+    c2.headers.update(c.headers)
+    assert c2.post("/textbooks/chapters/ncert:keps2:2/generate").json()["status"] == "working"
+    done = next(ch for ch in c2.get("/textbooks/chapters").json() if ch["id"] == "ncert:keps2:2")
+    assert done["status"] == "done" and done["questions"] == 4  # background task ran
+    test = c2.post("/tests", json={"type": "textbook", "chapter_id": "ncert:keps2:2"}).json()
+    assert test["question_count"] == 4 and test["title"].endswith("Indian Constitution at Work Ch 2")

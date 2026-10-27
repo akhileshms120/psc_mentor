@@ -50,6 +50,7 @@ class TestRequest(BaseModel):
     type: str
     topic_id: str | None = None
     paper_id: int | None = None
+    chapter_id: str | None = None
 
 
 class Answer(BaseModel):
@@ -217,6 +218,20 @@ def create_app(db: Database | None = None, today: Callable[[], date] = date.toda
     def topic_textbooks(topic_id: str, user_id: User):
         return textbooks.chapters_for_topic(db, topic_id)
 
+    @app.get("/textbooks/chapters")
+    def textbook_chapters(user_id: User):
+        return textbooks.all_chapters(db)
+
+    @app.post("/textbooks/chapters/{chapter_id}/generate")
+    def make_textbook_questions(chapter_id: str, user_id: User, background: BackgroundTasks):
+        if not db.one("SELECT 1 FROM textbook_chapters WHERE id = ?", (chapter_id,)):
+            raise HTTPException(404, "Chapter not found")
+        if not ai_enabled():
+            raise HTTPException(503, "The AI is off on the server, so it can't write questions yet.")
+        db.execute("UPDATE textbook_chapters SET status = 'working', error = NULL WHERE id = ?", (chapter_id,))
+        background.add_task(textbooks.generate_from_chapter, db, chapter_id)
+        return {"ok": True, "status": "working"}
+
     @app.get("/textbooks")
     def textbook_progress(user_id: User):
         rows = db.query("SELECT status, COUNT(*) AS n, COALESCE(SUM(question_count), 0) AS q "
@@ -256,7 +271,7 @@ def create_app(db: Database | None = None, today: Callable[[], date] = date.toda
     def create_test(req: TestRequest, user_id: User):
         try:
             test_id = engine.create_test(db, user_id, req.type, today(), topic_id=req.topic_id,
-                                         paper_id=req.paper_id)
+                                         paper_id=req.paper_id, chapter_id=req.chapter_id)
             return engine.get_test(db, user_id, test_id)
         except engine.TestError as e:
             raise test_error(e)

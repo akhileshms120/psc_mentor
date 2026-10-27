@@ -206,6 +206,14 @@ class Api {
           .map((c) => TextbookChapter.fromJson(c as Json))
           .toList();
 
+  Future<List<NcertChapter>> ncertChapters() async =>
+      (await _send('GET', '/textbooks/chapters') as List).map((c) => NcertChapter.fromJson(c as Json)).toList();
+
+  Future<void> makeChapterQuestions(String chapterId) async {
+    await _send('POST', '/textbooks/chapters/${Uri.encodeComponent(chapterId)}/generate');
+    changed();
+  }
+
   Future<Course> course() async => Course.fromJson(await _send('GET', '/course'));
 
   Future<List<PlanItem>> week() async =>
@@ -228,9 +236,9 @@ class Api {
 
   // --- tests ----------------------------------------------------------------
 
-  Future<TestInfo> createTest(String type, {String? topicId, int? paperId}) async {
-    final t = TestInfo.fromJson(
-        await _send('POST', '/tests', {'type': type, 'topic_id': topicId, 'paper_id': paperId}));
+  Future<TestInfo> createTest(String type, {String? topicId, int? paperId, String? chapterId}) async {
+    final t = TestInfo.fromJson(await _send(
+        'POST', '/tests', {'type': type, 'topic_id': topicId, 'paper_id': paperId, 'chapter_id': chapterId}));
     changed();
     return t;
   }

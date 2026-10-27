@@ -7,6 +7,7 @@ import 'package:http/testing.dart';
 import 'package:psc_mentor/app.dart';
 import 'package:psc_mentor/core/api.dart';
 import 'package:psc_mentor/core/models.dart';
+import 'package:psc_mentor/features/textbooks/textbook_screen.dart';
 
 const _summary = {
   'attempts': 40,
@@ -155,6 +156,20 @@ void main() {
         '/analysis' => _report,
         '/plan/week' => _plan,
         '/papers/sync' => {'running': false, 'imported': 0, 'failed': 0, 'queued': 0, 'last_run': null},
+        '/textbooks/chapters' => [
+            {
+              'id': 'ncert:keps2:2', 'board': 'NCERT', 'class': 11, 'subject': 'Political Science',
+              'book': 'Indian Constitution at Work', 'chapter': 2, 'title': 'Rights in the Indian Constitution',
+              'url': 'https://ncert.nic.in/textbook/pdf/keps202.pdf', 'status': 'done', 'error': null, 'questions': 10,
+              'topics': [{'topic_id': 'constitution.rights_duties', 'topic': 'Fundamental Rights, DPSP, Duties & Citizenship'}],
+            },
+            {
+              'id': 'ncert:jess2:3', 'board': 'NCERT', 'class': 10, 'subject': 'Social Science',
+              'book': 'Understanding Economic Development', 'chapter': 3, 'title': 'Money and Credit',
+              'url': 'https://ncert.nic.in/textbook/pdf/jess203.pdf', 'status': 'pending', 'error': null, 'questions': 0,
+              'topics': [{'topic_id': 'economics.finance', 'topic': 'RBI, budget, taxes & fiscal policy'}],
+            },
+          ],
         '/course' => {
             'total_days': 120,
             'today_day': 3,
@@ -287,6 +302,21 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Part 1 of 2'), findsOneWidget);
     expect(find.textContaining('Syllabus: Fundamental Rights; Directive Principles'), findsOneWidget);
+  });
+
+  testWidgets('the NCERT screen lists chapters with their question counts', (tester) async {
+    tester.view.physicalSize = const Size(1400, 2600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(const MaterialApp(home: TextbookScreen()));
+    await tester.pumpAndSettle();
+    expect(find.text('10 questions from 1 chapters'), findsOneWidget);
+    expect(find.text('Rights in the Indian Constitution'), findsOneWidget);
+    expect(find.text('Class 11 · Indian Constitution at Work · Ch 2'), findsOneWidget);
+    expect(find.text('10 questions'), findsOneWidget);
+    expect(find.text('No questions yet'), findsOneWidget);
+    expect(find.text('Make questions'), findsOneWidget);
+    expect(find.text('Make more'), findsOneWidget);
   });
 
   test('question source labels', () {

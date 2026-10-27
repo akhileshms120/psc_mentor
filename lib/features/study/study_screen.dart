@@ -6,6 +6,7 @@ import '../../core/ui.dart';
 import '../mentor/mentor_screen.dart';
 import '../tests/test_runner.dart';
 import '../course/course_screen.dart';
+import '../textbooks/textbook_screen.dart';
 import '../videos/topic_videos_sheet.dart';
 
 class StudyScreen extends StatelessWidget {
@@ -27,6 +28,15 @@ class StudyScreen extends StatelessWidget {
               subtitle: const Text('What to study each day until the exam, covering the whole syllabus.'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const CourseScreen())),
+            ),
+          ),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.auto_stories_outlined),
+              title: const Text('NCERT textbook questions'),
+              subtitle: const Text('Questions written from NCERT chapters (Classes 6–12) for each syllabus topic.'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const TextbookScreen())),
             ),
           ),
           for (final s in subjects)
