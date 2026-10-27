@@ -81,7 +81,12 @@ export GEMINI_API_KEY=...                  # optional, enables the AI features (
 
 Data is stored in `server/data/` (SQLite database + downloaded PDFs). Tests: `.venv/bin/python -m pytest`.
 
-AI provider: **Google Gemini** when `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) is set — model
+AI provider, first key found wins (or force one with `PSC_AI_PROVIDER=openrouter|gemini|claude`):
+- **OpenRouter** when `OPENROUTER_API_KEY` is set: `PSC_OPENROUTER_MODEL` (default `google/gemini-3-flash-preview`),
+  fallbacks `PSC_OPENROUTER_FALLBACKS`, paper/textbook readers `PSC_OPENROUTER_READER_MODELS` (full models only).
+  Needs account credits; without credits the mentor chat and tagging fall back to `PSC_OPENROUTER_FREE_MODELS`
+  (slow), while reading papers and writing textbook questions stay off (the free model invented Malayalam text).
+- **Google Gemini** when `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) is set — model
 `PSC_GEMINI_MODEL` (default `gemini-3.5-flash`), backups `PSC_GEMINI_FALLBACKS`
 (default `gemini-3.6-flash,gemini-3.5-flash-lite`) used when Google says a model is overloaded.
 Anthropic Claude is used instead when only `ANTHROPIC_API_KEY` is set (`PSC_CLAUDE_MODEL`, default

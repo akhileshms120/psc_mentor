@@ -21,13 +21,17 @@ Part = str | tuple[bytes, str]
 
 def _backend():
     provider = ai_provider()
+    if provider == "openrouter":
+        from . import ai_openrouter
+        return ai_openrouter
     if provider == "gemini":
         from . import ai_gemini
         return ai_gemini
     if provider == "claude":
         from . import ai_claude
         return ai_claude
-    raise AIError("AI is not configured. Set GEMINI_API_KEY (or ANTHROPIC_API_KEY) on the server.")
+    raise AIError("AI is not configured. Set OPENROUTER_API_KEY (or GEMINI_API_KEY / ANTHROPIC_API_KEY) "
+                  "on the server.")
 
 
 def _json_call(system: str, parts: list[Part], schema: dict, effort: str, task: str = "general") -> dict:
@@ -129,9 +133,11 @@ def tag_questions(questions: list[dict], catalog: str, topic_ids: list[str]) -> 
 
 
 _MALAYALAM = re.compile(r"[\u0D00-\u0D7F]")
-# Other Indian scripts (Devanagari..Kannada, Sinhala). Vision models sometimes slip one of these
-# letters into a Malayalam word, e.g. "সমাজം" for "സമാജം".
-_OTHER_INDIC = re.compile(r"[\u0900-\u0CFF\u0D80-\u0DFF]")
+# Letters from other scripts inside Malayalam text are a misreading: other Indian scripts
+# (a Bengali letter in "സമാജം"), and from weaker models Greek, Cyrillic, Arabic, Thai, Japanese,
+# Chinese or Korean. Latin is fine: Malayalam papers use English terms and abbreviations.
+_OTHER_INDIC = re.compile(r"[\u0370-\u03FF\u0400-\u04FF\u0600-\u06FF\u0900-\u0CFF\u0D80-\u0DFF\u0E00-\u0E7F"
+                          r"\u1100-\u11FF\u3040-\u30FF\u3400-\u4DBF\u4E00-\u9FFF\uAC00-\uD7AF]")
 
 
 def mixed_script(q: dict) -> bool:

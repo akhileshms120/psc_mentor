@@ -20,9 +20,12 @@ TOOLS = [{"name": "create_test", "description": "Make a test",
     ({"ANTHROPIC_API_KEY": "a"}, "claude"),
     ({"GEMINI_API_KEY": "g", "PSC_AI_PROVIDER": "claude"}, "claude"),
     ({"GEMINI_API_KEY": "g", "PSC_AI": "off"}, None),
+    ({"OPENROUTER_API_KEY": "o", "GEMINI_API_KEY": "g"}, "openrouter"),
+    ({"OPENROUTER_API_KEY": "o", "PSC_AI_PROVIDER": "gemini"}, "gemini"),
 ])
 def test_provider_choice(monkeypatch, tmp_path, env, expected):
-    for k in ["GEMINI_API_KEY", "GOOGLE_API_KEY", "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "PSC_AI_PROVIDER", "PSC_AI"]:
+    for k in ["OPENROUTER_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY", "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN",
+              "PSC_AI_PROVIDER", "PSC_AI"]:
         monkeypatch.delenv(k, raising=False)
     monkeypatch.setattr(config.Path, "home", lambda: tmp_path)  # no `ant` login profile
     for k, v in env.items():
@@ -267,3 +270,92 @@ def test_paper_reading_never_uses_lite_models(monkeypatch):
 def test_printed_option_labels_are_removed():
     q = {"number": 1, "stem": "s", "options": ["(A) ബീഹാർ", "B) Gujarat", "C. Maharashtra", "Uttar Pradesh"]}
     assert ai._clean_questions([q], with_answer=False)[0]["options"] == ["ബീഹാർ", "Gujarat", "Maharashtra", "Uttar Pradesh"]
+
+
+def fake_openrouter(monkeypatch, replies):
+    """Swap the OpenRouter HTTP client for one that returns `replies` in order and records requests."""
+    import httpx
+    from psc_mentor_server import ai_openrouter
+    sent = []
+
+    def handler(request):
+        sent.append(json.loads(request.content))
+        status, body = replies.pop(0)
+        return httpx.Response(status, json=body)
+
+    monkeypatch.setattr(ai_openrouter, "_get_client", lambda: httpx.Client(transport=httpx.MockTransport(handler)))
+    return sent
+
+
+def or_message(content=None, tool_calls=None, finish="stop"):
+    msg = {"role": "assistant", "content": content}
+    if tool_calls:
+        msg["tool_calls"] = tool_calls
+    return (200, {"choices": [{"message": msg, "finish_reason": finish}]})
+
+
+def test_openrouter_json_call_sends_schema_images_and_reader_models(monkeypatch):
+    from psc_mentor_server import ai_openrouter
+    sent = fake_openrouter(monkeypatch, [or_message('{"questions": []}')])
+    out = ai_openrouter.json_call(system="sys", parts=["read", (b"png-bytes", "image/png")],
+                                  schema={"type": "object"}, effort="medium", task="read_paper")
+    assert out == {"questions": []}
+    body = sent[0]
+    assert body["models"] == config.OPENROUTER_READER_MODELS and not any("lite" in m for m in body["models"])
+    assert body["response_format"]["json_schema"]["schema"] == {"type": "object"}
+    assert body["response_format"]["json_schema"]["strict"] is True
+    assert body["provider"] == {"require_parameters": True}
+    system, user = body["messages"]
+    assert system == {"role": "system", "content": "sys"}
+    assert user["content"][0] == {"type": "text", "text": "read"}
+    assert user["content"][1]["image_url"]["url"].startswith("data:image/png;base64,")
+
+
+def test_openrouter_mentor_runs_tools(monkeypatch):
+    from psc_mentor_server import ai_openrouter
+    call = {"id": "call_1", "type": "function", "function": {"name": "create_test", "arguments": '{"type": "daily"}'}}
+    sent = fake_openrouter(monkeypatch, [or_message(None, [call]), or_message("Your daily test is ready.")])
+    ran = []
+    reply = ai_openrouter.run_mentor(system="teach", history=[{"role": "user", "content": "hi"},
+                                                              {"role": "assistant", "content": "hello"}],
+                                     user_parts=["<ctx>", "test me"], tools=TOOLS,
+                                     run_tool=lambda n, a: ran.append((n, a)) or "made it")
+    assert reply == "Your daily test is ready." and ran == [("create_test", {"type": "daily"})]
+    second = sent[1]["messages"]
+    assert [m["role"] for m in second] == ["system", "user", "assistant", "user", "assistant", "tool"]
+    assert second[-1] == {"role": "tool", "tool_call_id": "call_1", "content": "made it"}
+    assert sent[0]["tools"][0]["function"]["parameters"] == TOOLS[0]["schema"]
+    assert sent[0]["models"][0] == config.OPENROUTER_MODEL
+
+
+@pytest.mark.parametrize("status,body,match", [
+    (401, {"error": {"code": 401, "message": "No auth"}}, "not valid"),
+    (402, {"error": {"code": 402, "message": "Insufficient credits"}}, "no credits"),
+    (429, {"error": {"code": 429, "message": "Rate limited"}}, "rate limiting"),
+    (200, {"choices": [{"message": {"content": "{"}, "finish_reason": "length"}]}, "cut off"),
+    (200, {"error": {"code": 502, "message": "upstream down"}}, "502"),
+])
+def test_openrouter_errors_become_friendly_ai_errors(monkeypatch, status, body, match):
+    from psc_mentor_server import ai_openrouter
+    fake_openrouter(monkeypatch, [(status, body)] * 2)  # a 402 is retried once on the free models
+    with pytest.raises(ai.AIError, match=match):
+        ai_openrouter.json_call(system="s", parts=["x"], schema={}, effort="low")
+
+
+def test_openrouter_without_credits_uses_free_models_for_chat_but_not_for_reading(monkeypatch):
+    from psc_mentor_server import ai_openrouter
+    no_credits = (402, {"error": {"code": 402, "message": "Insufficient credits"}})
+    sent = fake_openrouter(monkeypatch, [no_credits, or_message('{"ok": 1}')])
+    assert ai_openrouter.json_call(system="s", parts=["x"], schema={}, effort="low") == {"ok": 1}
+    assert sent[1]["models"] == config.OPENROUTER_FREE_MODELS
+    sent = fake_openrouter(monkeypatch, [no_credits])
+    with pytest.raises(ai.AIError, match="no credits"):
+        ai_openrouter.json_call(system="s", parts=["x"], schema={}, effort="low", task="read_paper")
+    assert len(sent) == 1
+
+
+def test_foreign_letters_in_malayalam_are_flagged():
+    assert ai.mixed_script({"stem": "മലയാള കലാമണ്ഡലം സ്ഥാപകന്‍?", "options": ["മッカー", "b", "c", "d"]})
+    assert ai.mixed_script({"stem": "i, ii 모두", "options": ["ചോദ്യം"]})
+    assert ai.mixed_script({"stem": "ചോദ്യം", "options": ["Griechenland", "Ελλάδα", "c", "d"]})
+    assert not ai.mixed_script({"stem": "ഇന്ത്യയുടെ GDP വളർച്ച?", "options": ["RBI", "SEBI", "c", "d"]})

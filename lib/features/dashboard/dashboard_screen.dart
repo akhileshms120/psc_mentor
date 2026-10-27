@@ -52,8 +52,8 @@ class DashboardScreen extends StatelessWidget {
                 child: ListTile(
                   leading: Icon(Icons.info_outline),
                   title: Text('AI mentor is off'),
-                  subtitle: Text('Tests and tracking work from the question bank. Add a Google Gemini API key '
-                      '(GEMINI_API_KEY) on the server to chat with the mentor, generate new questions and '
+                  subtitle: Text('Tests and tracking work from the question bank. Add an AI key on the server '
+                      '(OPENROUTER_API_KEY or GEMINI_API_KEY) to chat with the mentor, generate new questions and '
                       'read Malayalam papers.'),
                 ),
               ),
