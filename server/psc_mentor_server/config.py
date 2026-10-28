@@ -31,23 +31,19 @@ GEMINI_READER_MODELS = [m.strip() for m in os.environ.get(
 YOUTUBE_API_KEY = os.environ.get("YOUTUBE_API_KEY")
 
 
-# OpenRouter (openrouter.ai): one key, many providers' models; tried in order on failure.
-OPENROUTER_MODEL = os.environ.get("PSC_OPENROUTER_MODEL", "google/gemini-3-flash-preview")
-OPENROUTER_FALLBACKS = [m.strip() for m in os.environ.get(
-    "PSC_OPENROUTER_FALLBACKS", "google/gemini-3.6-flash,openai/gpt-5-mini").split(",") if m.strip()]
-# Reading papers and writing textbook questions: full models only (lite models invented options).
-OPENROUTER_READER_MODELS = [m.strip() for m in os.environ.get(
-    "PSC_OPENROUTER_READER_MODELS", "google/gemini-3-flash-preview,google/gemini-3.6-flash").split(",") if m.strip()]
+# OpenAI-compatible AI service; APInex (api.apinex.bond) by default. Any provider with the
+# OpenAI chat-completions API works: set PSC_AI_BASE_URL, the key and the model names.
+AI_BASE_URL = os.environ.get("PSC_AI_BASE_URL", "https://api.apinex.bond/v1").rstrip("/")
+AI_MODEL = os.environ.get("PSC_AI_MODEL", "free/kimi-k3")
+AI_FALLBACKS = [m.strip() for m in os.environ.get(
+    "PSC_AI_FALLBACKS", "free/gemini-3.8-flash,free/deepseek-v4.1-flash").split(",") if m.strip()]
+# Reading papers and writing textbook questions need models that read Malayalam page images well.
+AI_READER_MODELS = [m.strip() for m in os.environ.get(
+    "PSC_AI_READER_MODELS", "free/kimi-k3,free/gemini-3.8-flash").split(",") if m.strip()]
 
 
-# Free models (no credits needed) used for chat and tagging when the account has no credits.
-# Never for reading papers: in testing the free vision model invented Malayalam questions.
-OPENROUTER_FREE_MODELS = [m.strip() for m in os.environ.get(
-    "PSC_OPENROUTER_FREE_MODELS", "nvidia/nemotron-3.5-super-vl:free").split(",") if m.strip()]
-
-
-def openrouter_api_key() -> str | None:
-    return os.environ.get("OPENROUTER_API_KEY")
+def apinex_api_key() -> str | None:
+    return os.environ.get("APINEX_API_KEY") or os.environ.get("PSC_AI_API_KEY")
 
 
 def google_api_key() -> str | None:
@@ -65,15 +61,15 @@ def _anthropic_credentials() -> bool:
 
 
 def ai_provider() -> str | None:
-    """'openrouter', 'gemini', 'claude', or None. PSC_AI_PROVIDER picks one explicitly; otherwise
+    """'apinex', 'gemini', 'claude', or None. PSC_AI_PROVIDER picks one explicitly; otherwise
     the first key found in that order is used."""
     if os.environ.get("PSC_AI", "").lower() == "off":
         return None
     explicit = os.environ.get("PSC_AI_PROVIDER", "").lower()
-    if explicit in ("openrouter", "gemini", "claude"):
+    if explicit in ("apinex", "gemini", "claude"):
         return explicit
-    if openrouter_api_key():
-        return "openrouter"
+    if apinex_api_key():
+        return "apinex"
     if google_api_key():
         return "gemini"
     if _anthropic_credentials():

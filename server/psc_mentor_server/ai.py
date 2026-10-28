@@ -21,16 +21,16 @@ Part = str | tuple[bytes, str]
 
 def _backend():
     provider = ai_provider()
-    if provider == "openrouter":
-        from . import ai_openrouter
-        return ai_openrouter
+    if provider == "apinex":
+        from . import ai_apinex
+        return ai_apinex
     if provider == "gemini":
         from . import ai_gemini
         return ai_gemini
     if provider == "claude":
         from . import ai_claude
         return ai_claude
-    raise AIError("AI is not configured. Set OPENROUTER_API_KEY (or GEMINI_API_KEY / ANTHROPIC_API_KEY) "
+    raise AIError("AI is not configured. Set APINEX_API_KEY (or GEMINI_API_KEY / ANTHROPIC_API_KEY) "
                   "on the server.")
 
 

@@ -7,6 +7,7 @@ chapter's actual text, so every such question carries the chapter it came from.
 
 import json
 import re
+import time
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
@@ -87,14 +88,23 @@ def fetch_chapter(url: str) -> bytes:
     if not url.startswith(NCERT_PDF):
         raise ValueError("Only ncert.nic.in textbook PDFs can be read")
     with httpx.Client(headers={"User-Agent": USER_AGENT}, timeout=120, follow_redirects=True) as client:
-        resp = client.get(url)
+        # ncert.nic.in resets about one connection in two (Oct 2026); a second try usually works.
+        for attempt in range(3):
+            try:
+                resp = client.get(url)
+                break
+            except httpx.TransportError:
+                if attempt == 2:
+                    raise
+                time.sleep(2 * (attempt + 1))
         resp.raise_for_status()
         if not resp.content.startswith(b"%PDF"):
             raise ValueError("Not a PDF")
         return resp.content
 
 
-def generate_from_chapter(db: Database, chapter_id: str, fetch=fetch_chapter) -> int:
+def generate_from_chapter(db: Database, chapter_id: str, fetch=None) -> int:
+    fetch = fetch or fetch_chapter  # looked up now, so it can be swapped out (tests, other sources)
     row = db.one("SELECT * FROM textbook_chapters WHERE id = ?", (chapter_id,))
     topics = json.loads(row["topics_json"])
     try:
@@ -128,7 +138,7 @@ def next_chapters(db: Database, limit: int) -> list[str]:
     return [r["id"] for r in rows[:limit]]
 
 
-def run_textbooks(db: Database, limit: int, fetch=fetch_chapter) -> int:
+def run_textbooks(db: Database, limit: int, fetch=None) -> int:
     """Write questions from up to `limit` new chapters; returns how many questions were added."""
     if limit <= 0 or not ai_enabled():
         return 0
