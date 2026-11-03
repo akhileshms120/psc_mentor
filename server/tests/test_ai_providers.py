@@ -198,6 +198,7 @@ def test_qwen_mentor_runs_tools(monkeypatch):
     assert second[-1] == {"role": "tool", "tool_call_id": "call_1", "content": "made it"}
     assert sent[1]["tools"][0]["function"]["parameters"] == TOOLS[0]["schema"]
     assert sent[1]["model"] == "qwen-test"
+    assert sent[1]["reasoning_effort"] == "none"
 
 
 @pytest.mark.parametrize("status,body,match", [

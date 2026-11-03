@@ -180,7 +180,9 @@ def run_mentor(*, system: str, history: list[dict], user_parts: list[str], tools
                                                   "parameters": t["schema"], "strict": True}} for t in tools]
     text = ""
     for _ in range(MAX_TOOL_ROUNDS):
-        message = _post({"messages": messages, "tools": chat_tools, "max_tokens": 8192}, CHAT_TIMEOUT_SECONDS)
+        # No thinking first: a student is waiting, and in testing it took 51 s against 4 s for a one-word answer.
+        message = _post({"messages": messages, "tools": chat_tools, "max_tokens": 8192, "reasoning_effort": "none"},
+                        CHAT_TIMEOUT_SECONDS)
         messages.append(message)
         text = message.get("content") or text
         calls = message.get("tool_calls") or []
