@@ -11,7 +11,7 @@ from .pdf_pages import pdf_to_images
 from .questions import add_question
 from .syllabus import all_topic_ids, topic_catalog
 
-MIN_PARSED_SHARE = 0.6  # below this, local parsing failed and Claude reads the paper instead
+MIN_PARSED_SHARE = 0.6  # below this, local parsing failed and the AI reads the paper instead
 UNTAGGED_TOPIC = "special.technical"
 PDF = "application/pdf"
 IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
@@ -54,7 +54,7 @@ def _status(db: Database, paper_id: int, status: str, error: str | None = None) 
 
 
 def build_questions(paper_text: str, answers: dict[int, int | None], tagger=None) -> list[dict] | None:
-    """Locally parse a readable paper and merge in the key. None = needs Claude to read the paper."""
+    """Locally parse a readable paper and merge in the key. None = needs the AI to read the paper."""
     if not psc_source.looks_readable(paper_text):
         return None
     parsed = psc_source.parse_question_paper(paper_text, expected=max(answers) if answers else 150)
@@ -67,7 +67,7 @@ def build_questions(paper_text: str, answers: dict[int, int | None], tagger=None
         tag = tags.get(q["number"], {})
         q["topic_id"] = tag.get("topic_id", UNTAGGED_TOPIC)
         q["explanation"] = tag.get("explanation")
-        q["claude_answer"] = tag.get("claude_answer")
+        q["ai_answer"] = tag.get("ai_answer")
     return questions
 
 
@@ -81,7 +81,7 @@ def _read_questions(db: Database, files: list[tuple[bytes, str]], answers: dict[
     if questions is None:
         if not ai_enabled():
             raise PaperImportError("This paper is scanned, a photo, or uses a legacy Malayalam font; "
-                                   "set up Claude on the server to read it.")
+                                   "set up the AI on the server to read it.")
         questions = ai.extract_paper(files, answers, catalog, topic_ids, key_files)
     return questions
 
@@ -158,10 +158,10 @@ def import_upload(db: Database, paper_id: int, files: list[tuple[bytes, str]],
                 "\n".join(psc_source.pdf_text(d) for d, _ in key_files), booklet)
         unread_key = key_files if key_files and not answers else None
         if unread_key and not ai_enabled():
-            raise PaperImportError("Couldn't read this answer key; set up Claude on the server, "
+            raise PaperImportError("Couldn't read this answer key; set up the AI on the server, "
                                    "or upload the key as a text PDF.")
         if not key_files and not ai_enabled():
-            raise PaperImportError("Upload the answer key too, or set up Claude on the server "
+            raise PaperImportError("Upload the answer key too, or set up the AI on the server "
                                    "so it can work out the answers.")
 
         questions = _read_questions(db, files, answers, unread_key)
@@ -175,7 +175,7 @@ def import_upload(db: Database, paper_id: int, files: list[tuple[bytes, str]],
         def answer_for(q):
             if answers:
                 return answers.get(q["number"])
-            return q.get("claude_answer")
+            return q.get("ai_answer")
 
         count = _store(db, paper_id, questions, answer_for, "uploaded", source)
         _done(db, paper_id, count, source)

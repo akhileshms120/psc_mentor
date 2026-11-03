@@ -22,12 +22,11 @@ services:
       # Neon's direct (non -pooler) connection string, used only to create tables at startup.
       - key: DATABASE_URL_UNPOOLED
         sync: false
-      # APInex API key (api.apinex.bond, OpenAI-style API): turns on all AI features; used first when set.
-      - key: APINEX_API_KEY
-        sync: false
-      # Or a Google Gemini API key (aistudio.google.com): turns on the AI mentor, reading
+      # The Qwen server's address and API key: together they turn on the AI mentor, reading
       # Malayalam/scanned papers, answering uploads without a key, and new questions.
-      - key: GEMINI_API_KEY
+      - key: PSC_AI_BASE_URL
+        sync: false
+      - key: PSC_AI_API_KEY
         sync: false
       # YouTube Data API v3 key: shows the most-viewed Kerala PSC lessons for each topic.
       - key: YOUTUBE_API_KEY

@@ -3,7 +3,7 @@ import logging
 
 import pytest
 
-from psc_mentor_server import ai, config, engine, textbooks
+from psc_mentor_server import ai, engine, textbooks
 
 from .conftest import FIXTURES, TODAY
 
@@ -43,7 +43,6 @@ def test_the_shipped_catalog_only_uses_real_topics_and_ncert_codes():
 
 
 def test_questions_are_written_from_the_chapter_and_keep_their_source(catalog, monkeypatch):
-    monkeypatch.setattr(config, "ai_provider", lambda: "gemini")
     monkeypatch.setattr(textbooks, "ai_enabled", lambda: True)
     seen = {}
 

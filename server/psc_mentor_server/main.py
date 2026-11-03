@@ -11,13 +11,13 @@ from pydantic import BaseModel, Field
 
 from . import (ai, analysis, auth, curriculum, engine, importer, mentor, planner, progress, psc_source, psc_thriller,
                sync, textbooks, videos)
-from .config import DATABASE_URL, DATABASE_URL_UNPOOLED, DB_PATH, ai_enabled, ai_provider
+from .config import DATABASE_URL, DATABASE_URL_UNPOOLED, DB_PATH, ai_enabled
 from .db import Database, open_database
 from .seed_questions import seed_questions
 from .syllabus import EXAM_MINUTES, EXAM_NAME, EXAM_QUESTIONS, TOPIC_DETAILS, seed_syllabus
 
 LISTING_CACHE_SECONDS = 30 * 60
-MAX_UPLOAD_BYTES = 30 * 1024 * 1024  # Claude accepts up to 32 MB per request
+MAX_UPLOAD_BYTES = 30 * 1024 * 1024
 MAX_UPLOAD_FILES = 20
 
 
@@ -135,7 +135,7 @@ def create_app(db: Database | None = None, today: Callable[[], date] = date.toda
 
     @app.get("/health")
     def health():
-        return {"ok": True, "ai_enabled": ai_enabled(), "ai_provider": ai_provider()}
+        return {"ok": True, "ai_enabled": ai_enabled()}
 
     # --- accounts -----------------------------------------------------------
 

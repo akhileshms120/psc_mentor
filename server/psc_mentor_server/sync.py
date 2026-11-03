@@ -1,7 +1,7 @@
 """Keeping the question bank fresh with the latest official PSC papers.
 
 Scans the newest pages of the answer-key listing and imports general-studies
-papers, degree-level posts first. Malayalam-medium papers need Claude to read
+papers, degree-level posts first. Malayalam-medium papers need the AI to read
 them, so without AI only English papers are taken.
 """
 
@@ -16,8 +16,7 @@ from .db import Database
 
 SYNC_PAGES = int(os.environ.get("PSC_SYNC_PAGES", "6"))
 SYNC_LIMIT = int(os.environ.get("PSC_SYNC_PAPERS", "8"))
-# PSC Thriller papers per run; each uses ~2 AI requests (tagging + the Malayalam section), so keep
-# this small on Gemini's free tier.
+# PSC Thriller papers per run; each uses ~2 AI requests (tagging + the Malayalam section).
 THRILLER_LIMIT = int(os.environ.get("PSC_THRILLER_PAPERS", "4"))
 # NCERT chapters to write questions from per run (one AI request each).
 TEXTBOOK_LIMIT = int(os.environ.get("PSC_TEXTBOOK_CHAPTERS", "3"))

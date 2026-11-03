@@ -77,7 +77,7 @@ def test_build_questions_without_ai_tags_as_technical(fixture_text):
     assert {q["topic_id"] for q in questions} == {"special.technical"}
 
 
-def test_build_questions_asks_for_claude_on_unreadable_paper(fixture_text):
+def test_build_questions_asks_for_ai_on_unreadable_paper(fixture_text):
     assert build_questions(fixture_text("paper_092_2026_M.txt"), {1: 0}) is None
 
 
@@ -96,7 +96,7 @@ def test_sync_picks_degree_papers_first_and_skips_technical(fixture_text):
     assert with_ai[0].title.startswith("ASSISTANT (Universities")
     assert all(psc_source.paper_level(p.title) != "technical" for p in with_ai)
     assert all(p.medium in ("English", "Malayalam") and p.question_url for p in with_ai)
-    # Without Claude only English papers can be read, and this page has no general English ones.
+    # Without AI only English papers can be read, and this page has no general English ones.
     assert select_candidates(listings, set(), with_ai=False) == []
     known = {p.key_url for p in with_ai}
     assert not set(p.key_url for p in select_candidates(listings, known, True, limit=5)) & known

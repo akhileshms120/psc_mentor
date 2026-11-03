@@ -1,14 +1,13 @@
 """Every AI call goes through here, so the rest of the backend can run (and be tested) without one.
 
-The prompts and JSON shapes are shared; `ai_gemini` (Google) and `ai_claude` (Anthropic)
-only know how to send them. The provider comes from `config.ai_provider()`.
+The prompts and JSON shapes live here; `ai_qwen` only knows how to send them.
 """
 
 import json
 import re
 from typing import Any, Callable
 
-from .config import ai_provider
+from .config import ai_enabled
 
 
 class AIError(RuntimeError):
@@ -20,23 +19,14 @@ Part = str | tuple[bytes, str]
 
 
 def _backend():
-    provider = ai_provider()
-    if provider == "apinex":
-        from . import ai_apinex
-        return ai_apinex
-    if provider == "gemini":
-        from . import ai_gemini
-        return ai_gemini
-    if provider == "claude":
-        from . import ai_claude
-        return ai_claude
-    raise AIError("AI is not configured. Set APINEX_API_KEY (or GEMINI_API_KEY / ANTHROPIC_API_KEY) "
-                  "on the server.")
+    if not ai_enabled():
+        raise AIError("AI is not configured. Set PSC_AI_BASE_URL and PSC_AI_API_KEY on the server.")
+    from . import ai_qwen
+    return ai_qwen
 
 
-def _json_call(system: str, parts: list[Part], schema: dict, effort: str, task: str = "general") -> dict:
-    """task="read_paper" asks for the backend's most accurate readers (no lite models)."""
-    return _backend().json_call(system=system, parts=parts, schema=schema, effort=effort, task=task)
+def _json_call(system: str, parts: list[Part], schema: dict) -> dict:
+    return _backend().json_call(system=system, parts=parts, schema=schema)
 
 
 def run_mentor(system: str, history: list[dict], user_parts: list[str], tools: list[dict],
@@ -93,7 +83,7 @@ def _clean_questions(raw: list[dict], with_answer: bool) -> list[dict]:
             continue
         if not with_answer:
             letter = q.pop("answer_letter", "unknown")
-            q["claude_answer"] = "ABCD".index(letter) if letter in ("A", "B", "C", "D") else None
+            q["ai_answer"] = "ABCD".index(letter) if letter in ("A", "B", "C", "D") else None
         out.append(q)
     return out
 
@@ -121,13 +111,12 @@ def _key_text(answers: dict[int, int | None] | None) -> str:
 
 
 def tag_questions(questions: list[dict], catalog: str, topic_ids: list[str]) -> dict[int, dict]:
-    """questions: [{number, stem, options, answer_index}] -> {number: {topic_id, explanation, claude_answer}}."""
+    """questions: [{number, stem, options, answer_index}] -> {number: {topic_id, explanation, ai_answer}}."""
     listing = json.dumps(questions, ensure_ascii=False)
     data = _json_call(
         TAGGER_SYSTEM.format(catalog=catalog),
         ["Tag these questions. answer_index is the official answer (0=A, null=not known).\n" + listing],
         _question_schema(topic_ids, with_answer=False),
-        effort="medium",
     )
     return {q["number"]: q for q in _clean_questions(data["questions"], with_answer=False)}
 
@@ -157,7 +146,7 @@ def _repair_scripts(questions: list[dict], files: list[tuple[bytes, str]], schem
         "Bengali, Devanagari or another script inside Malayalam words. Re-read just these from the paper "
         "and return them with every Malayalam word written only in Malayalam Unicode letters:\n" + listing]
     try:
-        fixed = _clean_questions(_json_call(system, parts, schema, effort="medium", task="read_paper")["questions"],
+        fixed = _clean_questions(_json_call(system, parts, schema)["questions"],
                                  with_answer=False)
     except (AIError, KeyError, TypeError):
         return questions  # keep the first reading rather than lose the paper
@@ -205,7 +194,7 @@ def extract_paper(files: list[tuple[bytes, str]], answers: dict[int, int | None]
         else:
             instructions += _key_text(answers)
         parts.append(instructions)
-        found = _clean_questions(_json_call(system, parts, schema, effort="medium", task="read_paper")["questions"],
+        found = _clean_questions(_json_call(system, parts, schema)["questions"],
                                  with_answer=False)
         found = _repair_scripts(found, batch + key_pages, schema, system, instructions)
         for q in found:
@@ -242,7 +231,7 @@ def textbook_questions(chapter_text: str, source: str, topics: dict[str, str], c
     )
     # Accuracy matters as much as when reading a paper, so no lite models here either.
     data = _json_call(TEXTBOOK_SYSTEM.format(catalog=catalog), [prompt],
-                      _question_schema(topic_ids, with_answer=True), effort="medium", task="read_paper")
+                      _question_schema(topic_ids, with_answer=True))
     return _clean_questions(data["questions"], with_answer=True)
 
 
@@ -271,5 +260,5 @@ def generate_questions(requests: list[dict], examples: list[dict], language: str
         prompt += ("Real previous-year questions on these topics, for style and level "
                    "(do not copy them):\n" + json.dumps(examples, ensure_ascii=False))
     data = _json_call(GENERATOR_SYSTEM.format(catalog=catalog), [prompt],
-                      _question_schema(topic_ids, with_answer=True), effort="high")
+                      _question_schema(topic_ids, with_answer=True))
     return _clean_questions(data["questions"], with_answer=True)

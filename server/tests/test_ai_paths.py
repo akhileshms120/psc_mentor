@@ -1,4 +1,4 @@
-"""The Claude-backed flows, with Claude replaced by canned responses."""
+"""The AI-backed flows, with the AI replaced by canned responses."""
 
 import pytest
 
@@ -50,10 +50,10 @@ def ai_on(monkeypatch, tmp_path):
 
 ML_QUESTION = {"number": 1, "stem": "കേരളത്തിലെ ഏറ്റവും നീളം കൂടിയ നദി?",
                "options": ["ഭാരതപ്പുഴ", "പെരിയാർ", "പമ്പ", "ചാലിയാർ"],
-               "topic_id": "geography.kerala", "explanation": "പെരിയാർ", "claude_answer": 3}
+               "topic_id": "geography.kerala", "explanation": "പെരിയാർ", "ai_answer": 3}
 
 
-def test_official_malayalam_paper_goes_to_claude_and_uses_only_the_official_key(db, ai_on, monkeypatch):
+def test_official_malayalam_paper_goes_to_ai_and_uses_only_the_official_key(db, ai_on, monkeypatch):
     key_pdf = (FIXTURES / "pKey-92-26-M.pdf").read_bytes()
     garbled = (FIXTURES / "paper_092_2026_M.txt").read_text()
     real_pdf_text = psc_source.pdf_text
@@ -77,7 +77,7 @@ def test_official_malayalam_paper_goes_to_claude_and_uses_only_the_official_key(
     assert len(seen["answers"]) == 100 and seen["key_files"] is None
     q = db.one("SELECT q.* FROM paper_questions pq JOIN questions q ON q.id = pq.question_id WHERE pq.paper_id = ?",
                (paper_id,))
-    assert q["answer_index"] == 1  # the official key's B, not Claude's D
+    assert q["answer_index"] == 1  # the official key's B, not the AI's D
     assert q["verification"] == "final_key" and q["type"] == "verified_pyq" and q["lang"] == "ml"
 
 
@@ -90,7 +90,7 @@ def _upload(db, user, files, keys, booklet="A"):
                            "WHERE pq.paper_id = ? ORDER BY pq.qno", (paper_id,))
 
 
-def test_upload_text_pdf_with_text_key_needs_no_claude(db, user, fixture_text, monkeypatch, tmp_path):
+def test_upload_text_pdf_with_text_key_needs_no_ai(db, user, fixture_text, monkeypatch, tmp_path):
     monkeypatch.setattr(importer, "PAPERS_DIR", tmp_path)
     paper_text = fixture_text("paper_090_2026_A.txt")
     key_pdf = (FIXTURES / "pKey-92-26-M.pdf").read_bytes()
@@ -99,10 +99,10 @@ def test_upload_text_pdf_with_text_key_needs_no_claude(db, user, fixture_text, m
     paper, questions = _upload(db, user, [(b"%PDF-paper", "application/pdf")], [(key_pdf, "application/pdf")])
     assert paper["answer_source"] == "uploaded_key" and len(questions) == 100
     assert questions[0]["answer_index"] == 1 and questions[0]["type"] == "uploaded"
-    assert questions[0]["topic_id"] == "special.technical"  # untagged without Claude
+    assert questions[0]["topic_id"] == "special.technical"  # untagged without AI
 
 
-def test_upload_photos_with_photo_key_lets_claude_read_both(db, user, ai_on, monkeypatch):
+def test_upload_photos_with_photo_key_lets_ai_read_both(db, user, ai_on, monkeypatch):
     seen = {}
 
     def fake_extract(files, answers, catalog, topic_ids, key_files=None):
@@ -118,7 +118,7 @@ def test_upload_photos_with_photo_key_lets_claude_read_both(db, user, ai_on, mon
     assert questions[0]["answer_index"] == 3 and questions[0]["verification"] == "ai_read_key"
 
 
-def test_upload_without_key_is_solved_by_claude(db, user, ai_on, monkeypatch):
+def test_upload_without_key_is_solved_by_ai(db, user, ai_on, monkeypatch):
     monkeypatch.setattr(ai, "extract_paper", lambda files, answers, c, t, key_files=None: [dict(ML_QUESTION)])
     paper, questions = _upload(db, user, [(b"jpg", "image/jpeg")], [])
     assert paper["answer_source"] == "ai_solved" and questions[0]["answer_index"] == 3

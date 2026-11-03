@@ -16,11 +16,11 @@ Python + FastAPI + SQLite. Single student for now. Add accounts before hosting i
 | `syllabus.py` | Subjects, topics, mock weights, negative mark |
 | `seed_questions.py` | Starter bank of static-fact questions |
 | `psc_source.py` | Parse the keralapsc.gov.in answer-key listing, answer-key PDFs and English question papers |
-| `importer.py` | Download → read key → parse paper locally or with Claude → tag topics → store |
+| `importer.py` | Download → read key → parse paper locally or with the AI → tag topics → store |
 | `engine.py` | Build tests per type, fill gaps with generated questions, score with negative marking |
 | `progress.py` | Topic accuracy, weak topics, streak, spaced-revision queue |
 | `planner.py` | Weekly plan generation and completion tracking |
-| `ai.py` | All Claude calls: tagging, PDF extraction, question generation, chat |
+| `ai.py`, `ai_qwen.py` | All AI calls: tagging, PDF extraction, question generation, chat |
 | `mentor.py` | Mentor agent: system prompt, student context, tools (create_test, pyq_examples, replan_week) |
 | `main.py` | HTTP API |
 
@@ -35,14 +35,14 @@ Python + FastAPI + SQLite. Single student for now. Add accounts before hosting i
 
 ## Question types
 - `verified_pyq` – from an official paper; `verification` is `final_key` or `provisional_key`
-- `pyq_derived` – Claude-written in the style of real PYQs on that topic
-- `original_mock` – seed questions, or Claude-written when no PYQs exist for the topic
+- `pyq_derived` – AI-written in the style of real PYQs on that topic
+- `original_mock` – seed questions, or AI-written when no PYQs exist for the topic
 
 ## AI
-Claude (`claude-opus-5-5` by default) is called server-side only, with structured JSON output
-for extraction/generation, prompt caching on the system prompt, and server-side refusal fallback.
+A Qwen server with the OpenAI-style API is called server-side only, with structured JSON output
+for extraction/generation. The model is whichever the server lists first under `/v1/models`.
 English papers are parsed without AI; Malayalam papers use legacy non-Unicode fonts, so the
-PDF is sent to Claude to read.
+PDF's pages are sent to the AI to read.
 
 ## Next steps
 - Accounts + auth (JWT) and PostgreSQL when hosting for many students

@@ -78,7 +78,7 @@ def test_import_with_ai_tags_and_reads_the_malayalam_section(db, thriller_paper,
     def fake_extract(files, answers, catalog, topic_ids, key_files=None):
         asked.update(pages=len(files), numbers=sorted(answers))
         return [{"number": n, "stem": f"മലയാളം ചോദ്യം {n}", "options": ["ഒന്ന്", "രണ്ട്", "മൂന്ന്", "നാല്"],
-                 "topic_id": "malayalam.word_meaning", "explanation": "", "claude_answer": 0} for n in answers]
+                 "topic_id": "malayalam.word_meaning", "explanation": "", "ai_answer": 0} for n in answers]
 
     monkeypatch.setattr(ai, "extract_paper", fake_extract)
     importer.import_thriller(db, thriller_paper)

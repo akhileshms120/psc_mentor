@@ -1,12 +1,11 @@
-"""The Gemini and Claude adapters, with each SDK client replaced by a fake."""
+"""The Qwen adapter, with its HTTP client replaced by a fake, and the shared AI helpers."""
 
 import json
-from types import SimpleNamespace
 
+import httpx
 import pytest
-from google.genai import types
 
-from psc_mentor_server import ai, ai_claude, ai_gemini, config
+from psc_mentor_server import ai, ai_qwen, config
 
 TOOLS = [{"name": "create_test", "description": "Make a test",
           "schema": {"type": "object", "properties": {"type": {"type": "string"}},
@@ -14,142 +13,36 @@ TOOLS = [{"name": "create_test", "description": "Make a test",
 
 
 @pytest.mark.parametrize("env,expected", [
-    ({}, None),
-    ({"GEMINI_API_KEY": "g"}, "gemini"),
-    ({"GOOGLE_API_KEY": "g", "ANTHROPIC_API_KEY": "a"}, "gemini"),
-    ({"ANTHROPIC_API_KEY": "a"}, "claude"),
-    ({"GEMINI_API_KEY": "g", "PSC_AI_PROVIDER": "claude"}, "claude"),
-    ({"GEMINI_API_KEY": "g", "PSC_AI": "off"}, None),
-    ({"APINEX_API_KEY": "x", "GEMINI_API_KEY": "g"}, "apinex"),
-    ({"APINEX_API_KEY": "x", "PSC_AI_PROVIDER": "gemini"}, "gemini"),
+    ({}, False),
+    ({"PSC_AI_BASE_URL": "https://qwen.test"}, False),
+    ({"PSC_AI_API_KEY": "k"}, False),
+    ({"PSC_AI_BASE_URL": "https://qwen.test", "PSC_AI_API_KEY": "k"}, True),
+    ({"PSC_AI_BASE_URL": "https://qwen.test", "PSC_AI_API_KEY": "k", "PSC_AI": "off"}, False),
 ])
-def test_provider_choice(monkeypatch, tmp_path, env, expected):
-    for k in ["APINEX_API_KEY", "PSC_AI_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY", "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN",
-              "PSC_AI_PROVIDER", "PSC_AI"]:
+def test_ai_needs_both_the_address_and_the_key(monkeypatch, env, expected):
+    for k in ["PSC_AI_BASE_URL", "PSC_AI_API_KEY", "PSC_AI"]:
         monkeypatch.delenv(k, raising=False)
-    monkeypatch.setattr(config.Path, "home", lambda: tmp_path)  # no `ant` login profile
     for k, v in env.items():
         monkeypatch.setenv(k, v)
-    assert config.ai_provider() == expected
+    assert config.ai_enabled() is expected
 
 
-def gemini_response(text=None, calls=None, content="model-turn", finish=types.FinishReason.STOP):
-    return SimpleNamespace(text=text, function_calls=calls,
-                           candidates=[SimpleNamespace(content=content, finish_reason=finish)], prompt_feedback=None)
+@pytest.mark.parametrize("url", ["https://qwen.test", "https://qwen.test/", "https://qwen.test/v1", "https://qwen.test/v1/"])
+def test_base_url_works_with_or_without_v1(monkeypatch, url):
+    monkeypatch.setenv("PSC_AI_BASE_URL", url)
+    assert config.ai_base_url() == "https://qwen.test"
 
 
-class FakeGemini:
-    def __init__(self, responses):
-        self.responses, self.calls = list(responses), []
-        self.models = self
-
-    def generate_content(self, model, contents, config):
-        self.calls.append((model, list(contents), config))
-        return self.responses.pop(0)
-
-
-def test_gemini_json_call_sends_files_and_schema(monkeypatch):
-    fake = FakeGemini([gemini_response(text=json.dumps({"questions": []}))])
-    monkeypatch.setattr(ai_gemini, "_get_client", lambda: fake)
-    out = ai_gemini.json_call(system="sys", parts=["read this", (b"%PDF", "application/pdf")],
-                              schema={"type": "object"}, effort="medium")
-    assert out == {"questions": []}
-    model, contents, cfg = fake.calls[0]
-    assert model == config.GEMINI_MODEL
-    assert cfg.response_mime_type == "application/json" and cfg.response_json_schema == {"type": "object"}
-    parts = contents[0].parts
-    assert parts[0].text == "read this" and parts[1].inline_data.mime_type == "application/pdf"
-
-
-def test_gemini_mentor_runs_tools_and_keeps_the_model_turn(monkeypatch):
-    fake = FakeGemini([
-        gemini_response(calls=[SimpleNamespace(name="create_test", args={"type": "daily"})], content="turn-1"),
-        gemini_response(text="Here is your daily test.", content="turn-2"),
-    ])
-    monkeypatch.setattr(ai_gemini, "_get_client", lambda: fake)
-    ran = []
-    reply = ai_gemini.run_mentor(
-        system="be a teacher", history=[{"role": "user", "content": "hi"}, {"role": "assistant", "content": "hello"}],
-        user_parts=["<ctx>", "test me"], tools=TOOLS, run_tool=lambda n, a: ran.append((n, a)) or "made it")
-    assert reply == "Here is your daily test."
-    assert ran == [("create_test", {"type": "daily"})]
-    _, second_contents, cfg = fake.calls[1]
-    assert [c.role if hasattr(c, "role") else c for c in second_contents[:3]] == ["user", "model", "user"]
-    assert second_contents[3] == "turn-1"  # the model's own turn, passed back unchanged
-    response_part = second_contents[4].parts[0].function_response
-    assert response_part.name == "create_test" and response_part.response == {"result": "made it"}
-    assert cfg.automatic_function_calling.disable is True
-    assert cfg.tools[0].function_declarations[0].parameters_json_schema == TOOLS[0]["schema"]
-
-
-def test_gemini_errors_become_friendly_ai_errors(monkeypatch):
-    from google.genai import errors
-
-    class Quota:
-        models = None
-
-        def __init__(self):
-            self.models = self
-
-        def generate_content(self, **kw):
-            raise errors.ClientError(429, {"error": {"code": 429, "message": "quota", "status": "RESOURCE_EXHAUSTED"}})
-
-    monkeypatch.setattr(ai_gemini, "_get_client", Quota)
-    with pytest.raises(ai.AIError, match="quota"):
-        ai_gemini.json_call(system="s", parts=["x"], schema={}, effort="low")
-    fake = FakeGemini([gemini_response(text="{}", finish=types.FinishReason.MAX_TOKENS)])
-    monkeypatch.setattr(ai_gemini, "_get_client", lambda: fake)
-    with pytest.raises(ai.AIError, match="cut off"):
-        ai_gemini.json_call(system="s", parts=["x"], schema={}, effort="low")
-
-
-def test_claude_mentor_runs_tools(monkeypatch):
-    replies = [
-        SimpleNamespace(stop_reason="tool_use", content=[
-            SimpleNamespace(type="tool_use", id="t1", name="create_test", input={"type": "daily"})]),
-        SimpleNamespace(stop_reason="end_turn", content=[SimpleNamespace(type="text", text="Done.")]),
-    ]
-    sent = []
-    monkeypatch.setattr(ai_claude, "_call", lambda **kw: sent.append(kw) or replies.pop(0))
-    reply = ai_claude.run_mentor(system="s", history=[], user_parts=["ctx", "go"], tools=TOOLS,
-                                 run_tool=lambda n, a: "ok")
-    assert reply == "Done."
-    assert sent[0]["tools"][0]["strict"] is True and sent[0]["tools"][0]["input_schema"] == TOOLS[0]["schema"]
-    tool_turn = next(m for m in sent[1]["messages"] if m["role"] == "user" and m["content"][0].get("type") == "tool_result")
-    assert tool_turn["content"][0] == {"type": "tool_result", "tool_use_id": "t1", "content": "ok"}
-
-
-def test_shared_functions_use_the_active_provider(monkeypatch):
-    monkeypatch.setattr(ai, "ai_provider", lambda: "gemini")
-    monkeypatch.setattr(ai_gemini, "json_call", lambda **kw: {"questions": [
+def test_shared_functions_use_qwen(monkeypatch):
+    monkeypatch.setattr(ai, "ai_enabled", lambda: True)
+    monkeypatch.setattr(ai_qwen, "json_call", lambda **kw: {"questions": [
         {"number": 1, "stem": "Q?", "options": ["a", "b", "c", "d"], "topic_id": "history.kerala_history",
          "explanation": "e", "answer_letter": "C"}]})
     tags = ai.tag_questions([{"number": 1, "stem": "Q?", "options": list("abcd"), "answer_index": None}], "cat", ["x"])
-    assert tags[1]["claude_answer"] == 2 and tags[1]["topic_id"] == "history.kerala_history"
-    monkeypatch.setattr(ai, "ai_provider", lambda: None)
-    with pytest.raises(ai.AIError, match="GEMINI_API_KEY"):
+    assert tags[1]["ai_answer"] == 2 and tags[1]["topic_id"] == "history.kerala_history"
+    monkeypatch.setattr(ai, "ai_enabled", lambda: False)
+    with pytest.raises(ai.AIError, match="PSC_AI_API_KEY"):
         ai.tag_questions([], "cat", ["x"])
-
-
-def test_gemini_retries_then_falls_back_when_overloaded(monkeypatch):
-    from google.genai import errors
-    monkeypatch.setattr(ai_gemini, "RETRY_DELAY_SECONDS", 0)
-    attempts = []
-
-    class Flaky:
-        def __init__(self):
-            self.models = self
-
-        def generate_content(self, **kw):
-            attempts.append(kw["model"])
-            if len(attempts) < 3:
-                raise errors.ServerError(503, {"error": {"code": 503, "message": "overloaded", "status": "UNAVAILABLE"}})
-            return gemini_response(text='{"ok": true}')
-
-    monkeypatch.setattr(ai_gemini, "_get_client", lambda: Flaky())
-    assert ai_gemini.json_call(system="s", parts=["x"], schema={}, effort="low") == {"ok": True}
-    # main model twice, then the first fallback
-    assert attempts == [config.GEMINI_MODEL, config.GEMINI_MODEL, config.GEMINI_FALLBACKS[0]]
 
 
 def test_mixed_script_malayalam_is_detected():
@@ -165,7 +58,7 @@ def test_extract_paper_rereads_only_mixed_script_questions(monkeypatch):
                 "topic_id": "history.kerala_renaissance", "explanation": "x", "answer_letter": letter}
     calls = []
 
-    def fake_json_call(system, parts, schema, effort, task="general"):
+    def fake_json_call(system, parts, schema):
         calls.append(parts)
         if len(calls) == 1:
             return {"questions": [q(1, "പ്രാർത്ഥനാ সমাজം"), q(2, "വൈക്കം സത്യഗ്രഹം")]}
@@ -192,7 +85,7 @@ def test_extract_paper_reads_pages_in_overlapping_batches(monkeypatch):
     monkeypatch.setattr(pdf_pages, "as_page_images", lambda files: pages if files else [])
     sent = []
 
-    def fake_json_call(system, parts, schema, effort, task="general"):
+    def fake_json_call(system, parts, schema):
         images = [p[0].decode() for p in parts if isinstance(p, tuple)]
         sent.append(images)
         first = int(images[0][1:])
@@ -221,70 +114,40 @@ def test_extract_paper_keeps_the_fuller_copy_of_a_question_split_across_batches(
     assert out[0]["stem"] == "Long question text here"
 
 
-def test_gemini_moves_to_the_next_model_when_one_is_out_of_quota(monkeypatch):
-    from google.genai import errors
-    tried = []
-
-    class Quota:
-        def __init__(self):
-            self.models = self
-
-        def generate_content(self, **kw):
-            tried.append(kw["model"])
-            if kw["model"] != config.GEMINI_FALLBACKS[-1]:
-                raise errors.ClientError(429, {"error": {"code": 429, "status": "RESOURCE_EXHAUSTED",
-                                                         "message": "quota. Please retry in 22h40m13s."}})
-            return gemini_response(text='{"ok": 1}')
-
-    monkeypatch.setattr(ai_gemini, "_get_client", lambda: Quota())
-    assert ai_gemini.json_call(system="s", parts=["x"], schema={}, effort="low") == {"ok": 1}
-    assert tried == [config.GEMINI_MODEL] + config.GEMINI_FALLBACKS  # main model only once on 429
-
-    class AllOut(Quota):
-        def generate_content(self, **kw):
-            raise errors.ClientError(429, {"error": {"code": 429, "status": "RESOURCE_EXHAUSTED",
-                                                     "message": "quota. Please retry in 22h40m13s."}})
-
-    monkeypatch.setattr(ai_gemini, "_get_client", lambda: AllOut())
-    with pytest.raises(ai.AIError, match="resets in about 22 h 40 min"):
-        ai_gemini.json_call(system="s", parts=["x"], schema={}, effort="low")
-
-
-def test_paper_reading_never_uses_lite_models(monkeypatch):
-    tried = []
-
-    class Fake:
-        def __init__(self):
-            self.models = self
-
-        def generate_content(self, **kw):
-            tried.append(kw["model"])
-            return gemini_response(text='{"questions": []}')
-
-    monkeypatch.setattr(ai_gemini, "_get_client", lambda: Fake())
-    ai_gemini.json_call(system="s", parts=["x"], schema={}, effort="low", task="read_paper")
-    assert tried == [config.GEMINI_READER_MODELS[0]]
-    assert not any("lite" in m for m in config.GEMINI_READER_MODELS)
-
-
 def test_printed_option_labels_are_removed():
     q = {"number": 1, "stem": "s", "options": ["(A) ബീഹാർ", "B) Gujarat", "C. Maharashtra", "Uttar Pradesh"]}
     assert ai._clean_questions([q], with_answer=False)[0]["options"] == ["ബീഹാർ", "Gujarat", "Maharashtra", "Uttar Pradesh"]
 
 
-def fake_apinex(monkeypatch, replies):
-    """Swap the AI HTTP client for one that returns `replies` in order and records requests."""
-    import httpx
-    from psc_mentor_server import ai_apinex
+def sse(*chunks):
+    return "".join(f"data: {json.dumps(c)}\n\n" for c in chunks) + "data: [DONE]\n\n"
+
+
+def fake_qwen(monkeypatch, replies, models=({"id": "qwen-test"}, {"id": "other"})):
+    """Swap the AI HTTP client for one that lists `models`, returns `replies` in order and records requests."""
     sent = []
 
     def handler(request):
-        assert request.url.path.endswith("/chat/completions")
+        if request.method == "GET":
+            assert request.url.path == "/v1/models"
+            sent.append("models")
+            return httpx.Response(200, json={"data": list(models)})
+        assert request.url.path == "/v1/chat/completions"
         sent.append(json.loads(request.content))
         status, body = replies.pop(0)
-        return httpx.Response(status, json=body)
+        if isinstance(body, str):
+            return httpx.Response(status, text=body)
+        if status != 200:
+            return httpx.Response(status, json=body)
+        choice = body["choices"][0]
+        delta = {**choice["message"]}
+        if "tool_calls" in delta:
+            delta["tool_calls"] = [{**c, "index": i} for i, c in enumerate(delta["tool_calls"])]
+        return httpx.Response(200, text=sse({"choices": [{"delta": delta, "finish_reason": choice["finish_reason"]}]}))
 
-    monkeypatch.setattr(ai_apinex, "_get_client", lambda: httpx.Client(transport=httpx.MockTransport(handler)))
+    monkeypatch.setenv("PSC_AI_BASE_URL", "https://qwen.test")
+    monkeypatch.setattr(ai_qwen, "_model_id", None)
+    monkeypatch.setattr(ai_qwen, "_get_client", lambda: httpx.Client(transport=httpx.MockTransport(handler)))
     return sent
 
 
@@ -295,14 +158,12 @@ def chat_reply(content=None, tool_calls=None, finish="stop"):
     return (200, {"choices": [{"message": msg, "finish_reason": finish}]})
 
 
-def test_apinex_json_call_sends_schema_images_and_reader_model(monkeypatch):
-    from psc_mentor_server import ai_apinex
-    sent = fake_apinex(monkeypatch, [chat_reply('{"questions": []}')])
-    out = ai_apinex.json_call(system="sys", parts=["read", (b"png-bytes", "image/png")],
-                              schema={"type": "object"}, effort="medium", task="read_paper")
+def test_qwen_json_call_sends_schema_images_and_the_listed_model(monkeypatch):
+    sent = fake_qwen(monkeypatch, [chat_reply('{"questions": []}')])
+    out = ai_qwen.json_call(system="sys", parts=["read", (b"png-bytes", "image/png")], schema={"type": "object"})
     assert out == {"questions": []}
-    body = sent[0]
-    assert body["model"] == config.AI_READER_MODELS[0]
+    body = sent[1]
+    assert body["model"] == "qwen-test" and body["stream"] is True
     assert body["response_format"]["json_schema"] == {"name": "result", "strict": True, "schema": {"type": "object"}}
     system, user = body["messages"]
     assert system == {"role": "system", "content": "sys"}
@@ -310,50 +171,85 @@ def test_apinex_json_call_sends_schema_images_and_reader_model(monkeypatch):
     assert user["content"][1]["image_url"]["url"].startswith("data:image/png;base64,")
 
 
-def test_apinex_tries_the_next_model_when_one_is_busy(monkeypatch):
-    from psc_mentor_server import ai_apinex
-    sent = fake_apinex(monkeypatch, [(503, {"error": {"code": 503, "message": "overloaded"}}), chat_reply('{"ok": 1}')])
-    assert ai_apinex.json_call(system="s", parts=["x"], schema={}, effort="low") == {"ok": 1}
-    assert [b["model"] for b in sent] == [config.AI_MODEL, config.AI_FALLBACKS[0]]
+def test_qwen_reads_the_model_list_only_once(monkeypatch):
+    sent = fake_qwen(monkeypatch, [chat_reply("{}"), chat_reply("{}")])
+    ai_qwen.json_call(system="s", parts=["x"], schema={})
+    ai_qwen.json_call(system="s", parts=["x"], schema={})
+    assert sent.count("models") == 1 and len(sent) == 3
 
 
-def test_apinex_mentor_runs_tools(monkeypatch):
-    from psc_mentor_server import ai_apinex
+def test_qwen_without_a_model_is_a_clear_error(monkeypatch):
+    fake_qwen(monkeypatch, [], models=())
+    with pytest.raises(ai.AIError, match="no model"):
+        ai_qwen.json_call(system="s", parts=["x"], schema={})
+
+
+def test_qwen_mentor_runs_tools(monkeypatch):
     call = {"id": "call_1", "type": "function", "function": {"name": "create_test", "arguments": '{"type": "daily"}'}}
-    sent = fake_apinex(monkeypatch, [chat_reply("", [call]), chat_reply("Your daily test is ready.")])
+    sent = fake_qwen(monkeypatch, [chat_reply("", [call]), chat_reply("Your daily test is ready.")])
     ran = []
-    reply = ai_apinex.run_mentor(system="teach", history=[{"role": "user", "content": "hi"},
-                                                          {"role": "assistant", "content": "hello"}],
-                                 user_parts=["<ctx>", "test me"], tools=TOOLS,
-                                 run_tool=lambda n, a: ran.append((n, a)) or "made it")
+    reply = ai_qwen.run_mentor(system="teach", history=[{"role": "user", "content": "hi"},
+                                                        {"role": "assistant", "content": "hello"}],
+                               user_parts=["<ctx>", "test me"], tools=TOOLS,
+                               run_tool=lambda n, a: ran.append((n, a)) or "made it")
     assert reply == "Your daily test is ready." and ran == [("create_test", {"type": "daily"})]
-    second = sent[1]["messages"]
+    second = sent[2]["messages"]
     assert [m["role"] for m in second] == ["system", "user", "assistant", "user", "assistant", "tool"]
     assert second[-1] == {"role": "tool", "tool_call_id": "call_1", "content": "made it"}
-    assert sent[0]["tools"][0]["function"]["parameters"] == TOOLS[0]["schema"]
-    assert sent[0]["model"] == config.AI_MODEL
+    assert sent[1]["tools"][0]["function"]["parameters"] == TOOLS[0]["schema"]
+    assert sent[1]["model"] == "qwen-test"
 
 
 @pytest.mark.parametrize("status,body,match", [
     (401, {"error": {"code": 401, "message": "No auth"}}, "rejected the API key"),
-    (402, {"error": {"code": 402, "message": "Insufficient credits"}}, "out of credits"),
+    (503, {"error": {"code": 503, "message": "overloaded"}}, "busy"),
+    (429, {"error": {"code": 429, "message": "slow down"}}, "busy"),
     (200, {"choices": [{"message": {"content": "{"}, "finish_reason": "length"}]}, "cut off"),
     (400, {"error": {"code": 400, "message": "bad schema"}}, "bad schema"),
+    (524, "<html>A timeout occurred</html>", "busy"),
+    (200, sse({"error": {"message": "model crashed"}}), "model crashed"),
+    (200, "data: {not json\n\n", "garbled"),
+    (200, sse({"choices": [{"delta": {"reasoning": "hmm"}, "finish_reason": "stop"}]}), "no answer"),
 ])
-def test_apinex_errors_become_friendly_ai_errors(monkeypatch, status, body, match):
-    from psc_mentor_server import ai_apinex
-    fake_apinex(monkeypatch, [(status, body)])
+def test_qwen_errors_become_friendly_ai_errors(monkeypatch, status, body, match):
+    fake_qwen(monkeypatch, [(status, body)])
     with pytest.raises(ai.AIError, match=match):
-        ai_apinex.json_call(system="s", parts=["x"], schema={}, effort="low")
+        ai_qwen.json_call(system="s", parts=["x"], schema={})
 
 
-def test_apinex_all_models_busy_is_a_clear_error(monkeypatch):
-    from psc_mentor_server import ai_apinex
-    busy = (429, {"error": {"code": 429, "message": "slow down"}})
-    sent = fake_apinex(monkeypatch, [busy] * 5)
-    with pytest.raises(ai.AIError, match="busy"):
-        ai_apinex.json_call(system="s", parts=["x"], schema={}, effort="low")
-    assert len(sent) == len(dict.fromkeys([config.AI_MODEL] + config.AI_FALLBACKS))
+def test_qwen_joins_a_streamed_answer(monkeypatch):
+    fake_qwen(monkeypatch, [(200, sse(
+        {"choices": [{"delta": {"reasoning": "thinking..."}, "finish_reason": None}]},
+        {"choices": [{"delta": {"content": '{"ok"'}, "finish_reason": None}]},
+        {"choices": [{"delta": {"content": ': 1}'}, "finish_reason": "stop"}]},
+    ))])
+    assert ai_qwen.json_call(system="s", parts=["x"], schema={}) == {"ok": 1}
+
+
+def test_qwen_joins_tool_calls_sent_in_pieces(monkeypatch):
+    first = {"index": 0, "id": "call_1", "type": "function", "function": {"name": "create_test", "arguments": '{"ty'}}
+    rest = {"index": 0, "function": {"arguments": 'pe": "daily"}'}}
+    sent = fake_qwen(monkeypatch, [
+        (200, sse({"choices": [{"delta": {"tool_calls": [first]}, "finish_reason": None}]},
+                  {"choices": [{"delta": {"tool_calls": [rest]}, "finish_reason": "tool_calls"}]})),
+        chat_reply("Done."),
+    ])
+    ran = []
+    assert ai_qwen.run_mentor(system="s", history=[], user_parts=["go"], tools=TOOLS,
+                              run_tool=lambda n, a: ran.append((n, a)) or "ok") == "Done."
+    assert ran == [("create_test", {"type": "daily"})]
+    assert sent[2]["messages"][-2]["tool_calls"][0]["function"]["arguments"] == '{"type": "daily"}'
+
+
+def test_qwen_timeout_is_a_clear_error(monkeypatch):
+    def handler(request):
+        raise httpx.ReadTimeout("slow")
+
+    monkeypatch.setenv("PSC_AI_BASE_URL", "https://qwen.test")
+    monkeypatch.setattr(ai_qwen, "_model_id", "qwen-test")
+    monkeypatch.setattr(ai_qwen, "_get_client", lambda: httpx.Client(transport=httpx.MockTransport(handler)))
+    with pytest.raises(ai.AIError, match="too long"):
+        ai_qwen.json_call(system="s", parts=["x"], schema={})
 
 
 def test_foreign_letters_in_malayalam_are_flagged():
@@ -369,8 +265,7 @@ def test_foreign_letters_in_malayalam_are_flagged():
     'Here you go:\n```json\n{"questions": [{"n": 1}]}\n```',
     'Sure! [{"n": 1}]',
 ])
-def test_apinex_accepts_loosely_formatted_json(monkeypatch, content):
-    from psc_mentor_server import ai_apinex
-    fake_apinex(monkeypatch, [chat_reply(content)])
+def test_qwen_accepts_loosely_formatted_json(monkeypatch, content):
+    fake_qwen(monkeypatch, [chat_reply(content)])
     schema = {"type": "object", "properties": {"questions": {"type": "array"}}, "required": ["questions"]}
-    assert ai_apinex.json_call(system="s", parts=["x"], schema=schema, effort="low") == {"questions": [{"n": 1}]}
+    assert ai_qwen.json_call(system="s", parts=["x"], schema=schema) == {"questions": [{"n": 1}]}

@@ -75,22 +75,15 @@ Or step by step:
 cd server
 python3 -m venv .venv
 .venv/bin/pip install -r requirements-dev.txt
-export APINEX_API_KEY=...                  # optional, enables the AI features (or GEMINI_API_KEY)
+export PSC_AI_BASE_URL=...                 # optional, with the key below enables the AI features
+export PSC_AI_API_KEY=...
 .venv/bin/uvicorn psc_mentor_server.main:app --host 0.0.0.0 --port 8000
 ```
 
 Data is stored in `server/data/` (SQLite database + downloaded PDFs). Tests: `.venv/bin/python -m pytest`.
 
-AI provider, first key found wins (or force one with `PSC_AI_PROVIDER=apinex|gemini|claude`):
-- **APInex** (or any OpenAI-compatible service) when `APINEX_API_KEY` is set: base URL `PSC_AI_BASE_URL`
-  (default `https://api.apinex.bond/v1`), model `PSC_AI_MODEL` (default `free/kimi-k3`), backups `PSC_AI_FALLBACKS`
-  (default `free/gemini-3.8-flash,free/deepseek-v4.1-flash`) tried when a model is busy, and paper/textbook
-  readers `PSC_AI_READER_MODELS` (default `free/kimi-k3,free/gemini-3.8-flash`).
-- **Google Gemini** when `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) is set — model
-`PSC_GEMINI_MODEL` (default `gemini-3.5-flash`), backups `PSC_GEMINI_FALLBACKS`
-(default `gemini-3.6-flash,gemini-3.5-flash-lite`) used when Google says a model is overloaded.
-Anthropic Claude is used instead when only `ANTHROPIC_API_KEY` is set (`PSC_CLAUDE_MODEL`, default
-`claude-opus-5-5`); `PSC_AI_PROVIDER=gemini|claude` forces one.
+AI: a Qwen server with the OpenAI-style API. Set `PSC_AI_BASE_URL` (the address without `/v1`) and
+`PSC_AI_API_KEY`. The model is read from the server's `/v1/models` list (the first one).
 
 Settings (environment variables): `PSC_DATA_DIR`, `PSC_DB_PATH`, `PSC_AI=off` to disable AI, `PSC_AUTO_SYNC=off` to stop automatic paper
 import, `PSC_SYNC_PAGES` (listing pages to scan, default 6) and `PSC_SYNC_PAPERS` (papers per run, default 8).
@@ -109,7 +102,7 @@ minutes (the first request then takes up to a minute). Render's own free Postgre
 2. **Code on GitHub:** create an empty GitHub repository and push this folder to it.
 3. **Render:** dashboard → **New → Blueprint** → choose the repository. `render.yaml` sets everything up.
    When asked, paste the two values from `.env.local` into `DATABASE_URL` and `DATABASE_URL_UNPOOLED`,
-   and your AI key into `APINEX_API_KEY` (or a Google Gemini key into `GEMINI_API_KEY`). Deploy.
+   and your Qwen server's address and key into `PSC_AI_BASE_URL` and `PSC_AI_API_KEY`. Deploy.
 4. **Check:** open `https://<your-service>.onrender.com/health`. It should show `{"ok":true,...}`.
 5. **Point the app at it:** either enter that URL in the app under *Server settings*, or build it in:
 
@@ -151,7 +144,7 @@ flutter build windows        # requires Windows + Visual Studio C++ tools
 
 ## Important
 
-- AI keys (APInex, Gemini or Anthropic) stay on the server. Never put them in the Flutter app.
+- The AI key stays on the server. Never put them in the Flutter app.
 - Only official `keralapsc.gov.in` files can be imported.
 - Answer keys marked "provisional" can still change. Re-import after PSC publishes the final key.
 - Subject weights for the monthly mock live in `server/psc_mentor_server/syllabus.py`. They
