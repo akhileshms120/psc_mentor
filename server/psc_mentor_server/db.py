@@ -180,6 +180,19 @@ CREATE TABLE IF NOT EXISTS course_days (
 );
 CREATE INDEX IF NOT EXISTS idx_course_user_date ON course_days(user_id, date);
 
+-- Days the student marked complete. By date, because re-planning the course replaces course_days.
+CREATE TABLE IF NOT EXISTS course_completions (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    date TEXT NOT NULL,
+    PRIMARY KEY (user_id, date)
+);
+CREATE TABLE IF NOT EXISTS course_topic_completions (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    date TEXT NOT NULL,
+    topic_id TEXT NOT NULL,
+    PRIMARY KEY (user_id, date, topic_id)
+);
+
 -- NCERT (and later SCERT) chapters mapped to syllabus topics, and whether questions were
 -- written from them yet.
 CREATE TABLE IF NOT EXISTS textbook_chapters (

@@ -1,5 +1,6 @@
 """HTTP API for the PSC Mentor app. Run: uvicorn psc_mentor_server.main:app --host 0.0.0.0"""
 
+import json
 import os
 import time
 from datetime import date
@@ -51,6 +52,10 @@ class TestRequest(BaseModel):
     topic_id: str | None = None
     paper_id: int | None = None
     chapter_id: str | None = None
+
+
+class CourseDayUpdate(BaseModel):
+    done: bool
 
 
 class Answer(BaseModel):
@@ -249,6 +254,29 @@ def create_app(db: Database | None = None, today: Callable[[], date] = date.toda
     def course(user_id: User):
         return curriculum.course_view(db, user_id, today())
 
+    def markable_course_day(user_id: int, day: int) -> dict:
+        row = db.one("SELECT date, topics_json FROM course_days WHERE user_id = ? AND day = ?", (user_id, day))
+        if not row:
+            raise HTTPException(404, "Course day not found")
+        if row["date"] > today().isoformat():
+            raise HTTPException(400, "You can only mark today or an earlier day.")
+        planner.ensure_week(db, user_id, today())  # so today's plan items exist to tick
+        return row
+
+    @app.put("/course/days/{day}")
+    def update_course_day(day: int, update: CourseDayUpdate, user_id: User):
+        row = markable_course_day(user_id, day)
+        curriculum.set_day_done(db, user_id, row["date"], update.done)
+        return curriculum.course_view(db, user_id, today())
+
+    @app.put("/course/days/{day}/topics/{topic_id}")
+    def update_course_topic(day: int, topic_id: str, update: CourseDayUpdate, user_id: User):
+        row = markable_course_day(user_id, day)
+        if topic_id not in [t["topic_id"] for t in json.loads(row["topics_json"])]:
+            raise HTTPException(404, "That topic isn't part of this day")
+        curriculum.set_topic_done(db, user_id, row["date"], topic_id, update.done)
+        return curriculum.course_view(db, user_id, today())
+
     @app.get("/plan/week")
     def week(user_id: User):
         return planner.week_plan(db, user_id, today())
@@ -260,9 +288,12 @@ def create_app(db: Database | None = None, today: Callable[[], date] = date.toda
 
     @app.post("/plan/items/{item_id}/toggle")
     def toggle(item_id: int, user_id: User):
-        if not db.one("SELECT 1 FROM plan_items WHERE id = ? AND user_id = ?", (item_id, user_id)):
+        item = db.one("SELECT day, topic_id, done FROM plan_items WHERE id = ? AND user_id = ?", (item_id, user_id))
+        if not item:
             raise HTTPException(404, "Plan item not found")
         db.execute("UPDATE plan_items SET done = 1 - done WHERE id = ?", (item_id,))
+        if item["done"]:
+            curriculum.clear_marks(db, user_id, item["day"], item["topic_id"])
         return planner.week_plan(db, user_id, today())
 
     # --- tests --------------------------------------------------------------

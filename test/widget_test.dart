@@ -304,6 +304,39 @@ void main() {
     expect(find.textContaining('Syllabus: Fundamental Rights; Directive Principles'), findsOneWidget);
   });
 
+  testWidgets('a day can be marked complete from its sheet, but not a day still to come', (tester) async {
+    await start(tester);
+    await tester.tap(find.text('Day 3 of 120'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Day 7 · Sun 1 Nov'));
+    await tester.pumpAndSettle();
+    expect(find.text('Mark Day 7 complete'), findsNothing);
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Day 3 · Wed 28 Oct · Today'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Mark Day 3 complete'));
+    await tester.pumpAndSettle();
+    expect(calls, contains('PUT /course/days/3'));
+    expect(find.text('Mark Day 3 complete'), findsNothing); // the sheet closed
+  });
+
+  testWidgets('ticking the only topic of a day completes the day, and unticking it undoes that', (tester) async {
+    await start(tester);
+    await tester.tap(find.text('Day 3 of 120'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Day 3 · Wed 28 Oct · Today'));
+    await tester.pumpAndSettle();
+    final topic = find.byKey(const ValueKey('topic-done-constitution.rights_duties'));
+    await tester.tap(topic);
+    await tester.pumpAndSettle();
+    expect(calls, contains('PUT /course/days/3/topics/constitution.rights_duties'));
+    expect(find.text('Day 3 complete · Undo'), findsOneWidget);
+    await tester.tap(topic);
+    await tester.pumpAndSettle();
+    expect(find.text('Mark Day 3 complete'), findsOneWidget);
+  });
+
   testWidgets('the NCERT screen lists chapters with their question counts', (tester) async {
     tester.view.physicalSize = const Size(1400, 2600);
     tester.view.devicePixelRatio = 1;

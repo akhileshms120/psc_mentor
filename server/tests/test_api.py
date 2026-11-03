@@ -203,3 +203,59 @@ def test_course_endpoint(client):
     assert course["total_days"] == 124 and course["today_day"] == 1  # signed up with exam on 2027-03-01
     assert client.put("/me", json={"exam_date": "2027-01-28"}).status_code == 200
     assert client.get("/course").json()["total_days"] == 92  # 28 Oct 2026 -> 28 Jan 2027
+
+
+def test_mark_course_day_complete(client):
+    def day(n):
+        return next(d for d in client.get("/course").json()["days"] if d["day"] == n)
+
+    assert day(1)["done"] is False
+    marked = client.put("/course/days/1", json={"done": True})
+    assert marked.status_code == 200 and marked.json()["days"][0]["done"] is True
+    today_items = [p for p in client.get("/plan/week").json() if p["day"] == day(1)["date"]]
+    assert today_items and all(p["done"] for p in today_items)
+
+    client.put("/me", json={"daily_minutes": 180})  # re-planning replaces today's course row
+    assert day(1)["done"] is True
+
+    assert client.put("/course/days/1", json={"done": False}).json()["days"][0]["done"] is False
+    today_items = [p for p in client.get("/plan/week").json() if p["day"] == day(1)["date"]]
+    assert not any(p["done"] for p in today_items)
+
+    assert client.put("/course/days/2", json={"done": True}).status_code == 400  # still to come
+    assert client.put("/course/days/9999", json={"done": True}).status_code == 404
+
+
+def test_mark_course_topics_complete(client):
+    def day(n):
+        return next(d for d in client.get("/course").json()["days"] if d["day"] == n)
+
+    def mark(topic, done):
+        return client.put(f"/course/days/1/topics/{topic}", json={"done": done})
+
+    first, *rest = [t["topic_id"] for t in day(1)["topics"]]
+    assert rest  # a study day with more than one topic
+
+    assert mark(first, True).status_code == 200
+    assert [t["practised"] for t in day(1)["topics"]] == [True] + [False] * len(rest)
+    assert day(1)["done"] is False
+    block = next(p for p in client.get("/plan/week").json() if p["day"] == day(1)["date"] and p["topic_id"] == first)
+    assert block["done"] is True
+
+    for topic in rest:
+        mark(topic, True)
+    assert day(1)["done"] is True
+
+    mark(first, False)
+    assert day(1)["done"] is False
+    assert [t["practised"] for t in day(1)["topics"]] == [False] + [True] * len(rest)
+
+    # Marking the whole day ticks every topic; unticking its block on Home undoes the day again.
+    client.put("/course/days/1", json={"done": True})
+    assert all(t["practised"] for t in day(1)["topics"])
+    block = next(p for p in client.get("/plan/week").json() if p["day"] == day(1)["date"] and p["topic_id"] == first)
+    client.post(f"/plan/items/{block['id']}/toggle")
+    assert day(1)["done"] is False and day(1)["topics"][0]["practised"] is False
+
+    assert mark("no.such_topic", True).status_code == 404
+    assert client.put(f"/course/days/2/topics/{first}", json={"done": True}).status_code == 400  # still to come

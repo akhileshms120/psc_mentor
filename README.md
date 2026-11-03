@@ -21,6 +21,7 @@ Two parts:
    last ~10% of days alternate full mocks and revision. Every one of the 49 syllabus topics is covered;
    extra days go to sections by marks and weakness, and the course is re-planned after the diagnostic
    and when the exam date or daily time changes. Today's plan on Home follows the course.
+   Open a day to mark it or any of its topics complete (or undo that); this ticks the same items on Home.
    Each topic shows what the official 2024 syllabus lists under it.
 5. **Time plan:** the weekly study time is shared out in proportion to *marks × (1 − accuracy + 0.15)*,
    so weak, high-mark sections get the most time and strong sections still get some practice.

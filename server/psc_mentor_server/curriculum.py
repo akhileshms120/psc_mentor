@@ -130,6 +130,43 @@ def course_topics_on(db: Database, user_id: int, day: date) -> list[str] | None:
     return [t["topic_id"] for t in json.loads(row["topics_json"])]
 
 
+def set_day_done(db: Database, user_id: int, day: str, done: bool) -> None:
+    """Mark a course date and all its topics complete or not, and tick or untick its plan items."""
+    if done:
+        db.execute("INSERT INTO course_completions (user_id, date) VALUES (?, ?) "
+                   "ON CONFLICT (user_id, date) DO NOTHING", (user_id, day))
+        row = db.one("SELECT topics_json FROM course_days WHERE user_id = ? AND date = ?", (user_id, day))
+        for t in json.loads(row["topics_json"]):
+            _mark_topic(db, user_id, day, t["topic_id"])
+    else:
+        clear_marks(db, user_id, day)
+        db.execute("DELETE FROM course_topic_completions WHERE user_id = ? AND date = ?", (user_id, day))
+    db.execute("UPDATE plan_items SET done = ? WHERE user_id = ? AND day = ?", (int(done), user_id, day))
+
+
+def _mark_topic(db: Database, user_id: int, day: str, topic_id: str) -> None:
+    db.execute("INSERT INTO course_topic_completions (user_id, date, topic_id) VALUES (?, ?, ?) "
+               "ON CONFLICT (user_id, date, topic_id) DO NOTHING", (user_id, day, topic_id))
+
+
+def set_topic_done(db: Database, user_id: int, day: str, topic_id: str, done: bool) -> None:
+    """Mark one topic of a course date complete or not, and its study block on Home to match."""
+    if done:
+        _mark_topic(db, user_id, day, topic_id)
+    else:
+        clear_marks(db, user_id, day, topic_id)
+    db.execute("UPDATE plan_items SET done = ? WHERE user_id = ? AND day = ? AND kind = 'study' AND topic_id = ?",
+               (int(done), user_id, day, topic_id))
+
+
+def clear_marks(db: Database, user_id: int, day: str, topic_id: str | None = None) -> None:
+    """Something on this date is no longer done, so the date isn't marked complete either."""
+    db.execute("DELETE FROM course_completions WHERE user_id = ? AND date = ?", (user_id, day))
+    if topic_id:
+        db.execute("DELETE FROM course_topic_completions WHERE user_id = ? AND date = ? AND topic_id = ?",
+                   (user_id, day, topic_id))
+
+
 def course_view(db: Database, user_id: int, today: date) -> dict:
     ensure_course(db, user_id, today)
     names = {r["id"]: (r["name"], r["subject"], r["subject_id"]) for r in db.query(
@@ -138,9 +175,12 @@ def course_view(db: Database, user_id: int, today: date) -> dict:
     done_dates = {r["day"] for r in db.query(
         "SELECT day FROM plan_items WHERE user_id = ? AND kind = 'study' GROUP BY day HAVING MIN(done) = 1",
         (user_id,))}
+    done_dates |= {r["date"] for r in db.query("SELECT date FROM course_completions WHERE user_id = ?", (user_id,))}
     # A topic counts as practised when its study block that day is ticked off (a topic test does that).
     tested = {(r["day"], r["topic_id"]) for r in db.query(
         "SELECT day, topic_id FROM plan_items WHERE user_id = ? AND kind = 'study' AND done = 1", (user_id,))}
+    tested |= {(r["date"], r["topic_id"]) for r in db.query(
+        "SELECT date, topic_id FROM course_topic_completions WHERE user_id = ?", (user_id,))}
     days = []
     for r in db.query("SELECT * FROM course_days WHERE user_id = ? ORDER BY day", (user_id,)):
         topics = []

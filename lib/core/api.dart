@@ -216,6 +216,16 @@ class Api {
 
   Future<Course> course() async => Course.fromJson(await _send('GET', '/course'));
 
+  Future<void> setCourseDayDone(int day, bool done) async {
+    await _send('PUT', '/course/days/$day', {'done': done});
+    changed();
+  }
+
+  Future<void> setCourseTopicDone(int day, String topicId, bool done) async {
+    await _send('PUT', '/course/days/$day/topics/${Uri.encodeComponent(topicId)}', {'done': done});
+    changed();
+  }
+
   Future<List<PlanItem>> week() async =>
       (await _send('GET', '/plan/week') as List).map((p) => PlanItem.fromJson(p as Json)).toList();
 

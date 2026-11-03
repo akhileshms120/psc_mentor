@@ -79,7 +79,12 @@ class CourseScreen extends StatelessWidget {
             children: [
               for (final entry in weeks.entries) ...[
                 SectionTitle('Week ${entry.key + 1}'),
-                for (final d in entry.value) _DayTile(day: d, today: d.day == course.todayDay),
+                for (final d in entry.value)
+                  _DayTile(
+                    day: d,
+                    today: d.day == course.todayDay,
+                    upcoming: course.todayDay != null && d.day > course.todayDay!,
+                  ),
               ],
             ],
           );
@@ -90,9 +95,10 @@ class CourseScreen extends StatelessWidget {
 }
 
 class _DayTile extends StatelessWidget {
-  const _DayTile({required this.day, required this.today});
+  const _DayTile({required this.day, required this.today, required this.upcoming});
   final CourseDay day;
   final bool today;
+  final bool upcoming;
 
   @override
   Widget build(BuildContext context) {
@@ -107,18 +113,70 @@ class _DayTile extends StatelessWidget {
         ),
         title: Text('Day ${day.day} · ${_dateLabel(day.date)}${today ? ' · Today' : ''}'),
         subtitle: Text(day.summary),
-        onTap: () => _openDay(context, day),
+        onTap: () => _openDay(context, day, upcoming: upcoming),
       ),
     );
   }
 }
 
-void _openDay(BuildContext context, CourseDay day) {
+void _openDay(BuildContext context, CourseDay day, {required bool upcoming}) {
   showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
-    builder: (sheet) => DraggableScrollableSheet(
+    builder: (sheet) => _DaySheet(day: day, upcoming: upcoming),
+  );
+}
+
+class _DaySheet extends StatefulWidget {
+  const _DaySheet({required this.day, required this.upcoming});
+  final CourseDay day;
+  final bool upcoming;
+
+  @override
+  State<_DaySheet> createState() => _DaySheetState();
+}
+
+class _DaySheetState extends State<_DaySheet> {
+  late bool _done = widget.day.done;
+  late final Set<String> _practised = {
+    for (final t in widget.day.topics)
+      if (t.practised) t.topicId,
+  };
+
+  Future<void> _setDayDone(bool done) async {
+    try {
+      await Api.instance.setCourseDayDone(widget.day.day, done);
+      if (mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (mounted) showError(context, e);
+    }
+  }
+
+  Future<void> _setTopicDone(CourseTopic topic, bool done) async {
+    final before = (_done, {..._practised});
+    setState(() {
+      done ? _practised.add(topic.topicId) : _practised.remove(topic.topicId);
+      _done = done && _practised.length == widget.day.topics.length;
+    });
+    try {
+      await Api.instance.setCourseTopicDone(widget.day.day, topic.topicId, done);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _done = before.$1;
+        _practised
+          ..clear()
+          ..addAll(before.$2);
+      });
+      showError(context, e);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final day = widget.day;
+    return DraggableScrollableSheet(
       expand: false,
       initialChildSize: 0.6,
       maxChildSize: 0.92,
@@ -128,6 +186,21 @@ void _openDay(BuildContext context, CourseDay day) {
         children: [
           Text('Day ${day.day} · ${_dateLabel(day.date)}', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
+          if (!widget.upcoming) ...[
+            if (_done)
+              OutlinedButton.icon(
+                icon: const Icon(Icons.undo),
+                label: Text('Day ${day.day} complete · Undo'),
+                onPressed: () => _setDayDone(false),
+              )
+            else
+              FilledButton.icon(
+                icon: const Icon(Icons.check),
+                label: Text('Mark Day ${day.day} complete'),
+                onPressed: () => _setDayDone(true),
+              ),
+            const SizedBox(height: 12),
+          ],
           if (day.topics.isEmpty) ...[
             Text(day.summary),
             const SizedBox(height: 12),
@@ -153,7 +226,14 @@ void _openDay(BuildContext context, CourseDay day) {
                   children: [
                     Row(children: [
                       Expanded(child: Text(t.subject, style: Theme.of(context).textTheme.labelLarge)),
-                      if (t.practised) const Icon(Icons.check_circle, color: Colors.green, size: 18),
+                      if (!widget.upcoming) ...[
+                        const Text('Done'),
+                        Checkbox(
+                          key: ValueKey('topic-done-${t.topicId}'),
+                          value: _practised.contains(t.topicId),
+                          onChanged: (v) => _setTopicDone(t, v ?? false),
+                        ),
+                      ],
                     ]),
                     Text(t.topic, style: Theme.of(context).textTheme.titleMedium),
                     if (t.partLabel.isNotEmpty) Text(t.partLabel, style: Theme.of(context).textTheme.bodySmall),
@@ -189,19 +269,27 @@ void _openDay(BuildContext context, CourseDay day) {
             ),
         ],
       ),
-    ),
-  );
+    );
+  }
 }
 
 /// The NCERT chapters that teach a topic, opening the chapter PDF.
-class _ReadingList extends StatelessWidget {
+class _ReadingList extends StatefulWidget {
   const _ReadingList({required this.topicId});
   final String topicId;
 
   @override
+  State<_ReadingList> createState() => _ReadingListState();
+}
+
+class _ReadingListState extends State<_ReadingList> {
+  // Kept here so that ticking a topic in the sheet doesn't fetch the list again.
+  late final _chapters = Api.instance.topicTextbooks(widget.topicId);
+
+  @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<TextbookChapter>>(
-      future: Api.instance.topicTextbooks(topicId),
+      future: _chapters,
       builder: (context, snap) {
         final chapters = snap.data ?? const [];
         if (chapters.isEmpty) return const SizedBox.shrink();
